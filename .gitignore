@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# runtime error logs (written by src/lib/log.ts)
+/logs/
+
 # local tool config (personal, not shared project config)
 .claude/settings.local.json
 

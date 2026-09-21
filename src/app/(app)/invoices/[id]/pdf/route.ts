@@ -6,6 +6,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { getSessionUser } from "@/lib/auth";
 import { getInvoiceById } from "@/lib/db/queries/invoices";
 import { InvoiceDocument } from "@/components/pdf/invoice-document";
+import { logError } from "@/lib/log";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
@@ -48,7 +49,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       },
     });
   } catch (error) {
-    console.error("PDF generation failed:", error);
+    await logError(error, { path: `/invoices/${id}/pdf`, invoiceNumber: data.invoice.invoiceNumber });
     return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 });
   }
 }

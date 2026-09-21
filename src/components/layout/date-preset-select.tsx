@@ -45,7 +45,7 @@ export function DatePresetSelect({
       }}
     >
       <SelectTrigger className="h-9 w-40">
-        <SelectValue />
+        <SelectValue>{(value: string) => presets.find((p) => p.value === value)?.label ?? value}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {presets.map((p) => (

@@ -172,7 +172,7 @@ export function PaymentFormDialog({
             <Label className="mb-1 block text-sm">Payment Method</Label>
             <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as (typeof paymentMethods)[number])}>
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>{(value: string) => methodLabels[value] ?? value}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {paymentMethods.map((m) => (

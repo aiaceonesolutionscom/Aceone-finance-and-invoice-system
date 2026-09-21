@@ -44,7 +44,10 @@ export function StatusFilterSelect({
       }}
     >
       <SelectTrigger className={className ?? "h-9 w-48"}>
-        <SelectValue />
+        {/* Base UI's Select.Value shows the raw value, not the matching
+            item's label, unless given an explicit formatter — without this,
+            the closed trigger reads "ALL" instead of "All Customers". */}
+        <SelectValue>{(value: string) => options.find((o) => o.value === value)?.label ?? value}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.map((opt) => (
