@@ -41,6 +41,7 @@ export async function getPreviousOutstanding(
     WHERE i.customer_id = ${customerId}
       AND i.status != 'CANCELLED'
       ${excludeInvoiceId ? sql`AND i.id != ${excludeInvoiceId}` : sql``}
+    ORDER BY i.id ASC
   `);
 
   const withRemaining = rows.rows

@@ -4,7 +4,8 @@ import { pathToFileURL } from "url";
 import { existsSync } from "fs";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getSessionUser } from "@/lib/auth";
-import { getInvoiceById } from "@/lib/db/queries/invoices";
+import { db } from "@/lib/db";
+import { getInvoiceById, getPreviousOutstanding } from "@/lib/db/queries/invoices";
 import { getSettings } from "@/lib/db/queries/settings";
 import { InvoiceDocument } from "@/components/pdf/invoice-document";
 import { logError } from "@/lib/log";
@@ -21,7 +22,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
 
-  const settingsRow = await getSettings().catch(() => null);
+  const [settingsRow, previousOutstanding] = await Promise.all([
+    getSettings().catch(() => null),
+    getPreviousOutstanding(db, data.invoice.customerId, data.invoice.id).catch(() => ({
+      invoices: [],
+      previousOutstandingAmount: null,
+    })),
+  ]);
+
   const invoiceData = {
     ...data.invoice,
     companySnapshot: {
@@ -37,6 +45,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     },
   };
 
+  const previousOutstandingInvoices = (previousOutstanding?.invoices ?? []).map((inv) => ({
+    id: inv.id,
+    invoiceNumber: inv.invoiceNumber,
+    invoiceDate: inv.invoiceDate,
+    remaining: inv.remaining.toString(),
+    total: inv.total.toString(),
+    paid: inv.paid.toString(),
+  }));
+
   const redLogo = path.join(process.cwd(), "public", "logo-color.png");
   const whiteLogo = path.join(process.cwd(), "public", "uploads", "logo-1789645041019-a1985521.png");
 
@@ -49,6 +66,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         invoice: invoiceData,
         items: data.items,
         invoicePayments: data.payments,
+        previousOutstandingInvoices,
         logoAbsolutePath,
         whiteLogoAbsolutePath,
       })

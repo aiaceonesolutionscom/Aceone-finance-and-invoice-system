@@ -2,14 +2,15 @@ import { Document, Page, Text, View, StyleSheet, Image, Svg, Path, Polygon } fro
 import type { invoices, invoiceItems, payments } from "@/lib/db/schema";
 import { formatMoney, money, sumMoney } from "@/lib/money";
 
-// Brand Color Palette (AceOne Burgundy & Crimson Identity)
-const BRAND_PRIMARY = "#780028"; // Rich Deep Burgundy
-const BRAND_CRIMSON = "#9E0038"; // Vivid Crimson / Accent
-const BRAND_DARK = "#110B14"; // Dark Plum / Footer Band
+// Brand Color Palette (Exact AceOne Logo Identity)
+const BRAND_PRIMARY = "#BE1960"; // AceOne Signature Vibrant Magenta / Ruby (top of logo)
+const BRAND_SECONDARY = "#313667"; // AceOne Deep Indigo / Midnight Purple (bottom of logo)
+const BRAND_DARK = "#23274D"; // Dark Indigo
 const TEXT_DARK = "#1F2937";
 const TEXT_MUTED = "#6B7280";
 const BORDER_COLOR = "#E5E7EB";
-const CARD_BG = "#FFF1F2"; // Soft rose/pink card background
+const CARD_BG = "#FFF1F6"; // Soft AceOne pink/magenta card background
+const CARD_BORDER = "#FCE7F3"; // Soft AceOne pink border
 const ROW_ALT = "#FBFBFB";
 
 const methodLabels: Record<string, string> = {
@@ -32,7 +33,7 @@ function UserIcon() {
     <Svg width="11" height="11" viewBox="0 0 24 24" style={{ marginRight: 4 }}>
       <Path
         d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"
-        fill="#9E0038"
+        fill={BRAND_PRIMARY}
       />
     </Svg>
   );
@@ -43,7 +44,7 @@ function BuildingIcon() {
     <Svg width="11" height="11" viewBox="0 0 24 24" style={{ marginRight: 4 }}>
       <Path
         d="M4 2v20h8V7h8v15h2V5h-8V2H4zm2 2h4v2H6V4zm0 4h4v2H6V8zm0 4h4v2H6v-2zm0 4h4v2H6v-2zm8-7h4v2h-4v-2zm0 4h4v2h-4v-2zm0 4h4v2h-4v-2z"
-        fill="#9E0038"
+        fill={BRAND_PRIMARY}
       />
     </Svg>
   );
@@ -54,7 +55,7 @@ function BankIcon() {
     <Svg width="11" height="11" viewBox="0 0 24 24" style={{ marginRight: 4 }}>
       <Path
         d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"
-        fill="#9E0038"
+        fill={BRAND_PRIMARY}
       />
     </Svg>
   );
@@ -65,7 +66,7 @@ function NotesIcon() {
     <Svg width="11" height="11" viewBox="0 0 24 24" style={{ marginRight: 4 }}>
       <Path
         d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
-        fill="#9E0038"
+        fill={BRAND_PRIMARY}
       />
     </Svg>
   );
@@ -182,7 +183,7 @@ const styles = StyleSheet.create({
   invoiceCard: {
     backgroundColor: CARD_BG,
     borderWidth: 1,
-    borderColor: "#FECDD3",
+    borderColor: CARD_BORDER,
     borderRadius: 6,
     padding: 10,
   },
@@ -377,9 +378,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#5A001D", // Rich Deep Burgundy
+    backgroundColor: BRAND_SECONDARY, // AceOne Deep Indigo from bottom of logo
     borderTopWidth: 2.5,
-    borderTopColor: "#E11D48", // Vivid Crimson accent line
+    borderTopColor: BRAND_PRIMARY, // AceOne Signature Magenta accent line
     paddingVertical: 12,
     paddingHorizontal: 36,
     flexDirection: "row",
@@ -397,14 +398,14 @@ const styles = StyleSheet.create({
     lineHeight: 1.35,
   },
   footerLabel: {
-    color: "#FECDD3", // Crisp light rose label
+    color: "#FCE7F3", // Soft AceOne pink label
     fontWeight: 700,
   },
   footerValue: {
     color: "#FFFFFF", // Pure white for crystal clear readability
   },
   footerSep: {
-    color: "#FB7185", // Crimson/rose dot
+    color: BRAND_PRIMARY, // AceOne magenta dot
   },
   footerAddress: {
     color: "#FFFFFF", // Pure white for crystal clarity
@@ -420,16 +421,27 @@ type Payment = typeof payments.$inferSelect & {
   siblingInvoices?: { invoiceNumber: string; amount: string }[];
 };
 
+export type PreviousOutstandingInvoiceItem = {
+  id: number;
+  invoiceNumber: string;
+  invoiceDate: string;
+  remaining: string | ReturnType<typeof money>;
+  total?: string | ReturnType<typeof money>;
+  paid?: string | ReturnType<typeof money>;
+};
+
 export function InvoiceDocument({
   invoice,
   items,
   invoicePayments,
+  previousOutstandingInvoices = [],
   logoAbsolutePath,
   whiteLogoAbsolutePath,
 }: {
   invoice: Invoice;
   items: InvoiceItem[];
   invoicePayments: Payment[];
+  previousOutstandingInvoices?: PreviousOutstandingInvoiceItem[];
   logoAbsolutePath: string | null;
   whiteLogoAbsolutePath?: string | null;
 }) {
@@ -442,16 +454,22 @@ export function InvoiceDocument({
   const additionalTexts = invoice.additionalTextSnapshot ?? [];
   const includedPreviousOutstanding = Number(invoice.totalAmountDue) > Number(invoice.currentInvoiceTotal);
 
+  // Previous Balance calculations
+  const recordedPrevOutstanding = money(invoice.previousOutstandingAmount || 0);
+  const pendingInvoicesTotal = sumMoney(previousOutstandingInvoices.map((p) => p.remaining));
+  const prevBalanceAmount = recordedPrevOutstanding.gt(0) ? recordedPrevOutstanding : pendingInvoicesTotal;
+  const hasPreviousBalance = prevBalanceAmount.gt(0) || previousOutstandingInvoices.length > 0;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         {/* Top-Right Corner Geometric Accent (Flush with top-right page edges) */}
         <View style={styles.cornerAccent} fixed>
           <Svg width="110" height="70" viewBox="0 0 110 70">
-            {/* Angled Crimson Stripe */}
-            <Polygon points="32,0 46,0 18,52 4,52" fill="#BE123C" />
-            {/* Corner Burgundy Polygon flush to top and right edges */}
-            <Polygon points="58,0 110,0 110,70 20,70" fill="#780028" />
+            {/* Angled AceOne Magenta Stripe */}
+            <Polygon points="32,0 46,0 18,52 4,52" fill={BRAND_PRIMARY} />
+            {/* Corner AceOne Indigo Polygon flush to top and right edges */}
+            <Polygon points="58,0 110,0 110,70 20,70" fill={BRAND_SECONDARY} />
           </Svg>
         </View>
 
@@ -468,10 +486,10 @@ export function InvoiceDocument({
             <Text style={styles.taglineSub}>Ideas  •  Design  •  Technology  •  Growth</Text>
           </View>
 
-          {/* Tagline text with vertical red line on left */}
-          <View style={{ borderLeftWidth: 2, borderLeftColor: "#E11D48", paddingLeft: 8, maxWidth: 175, paddingTop: 1, marginRight: 50 }}>
+          {/* Tagline text with vertical magenta line on left */}
+          <View style={{ borderLeftWidth: 2, borderLeftColor: BRAND_PRIMARY, paddingLeft: 8, maxWidth: 175, paddingTop: 1, marginRight: 50 }}>
             <Text style={{ fontSize: 7.5, color: "#374151", marginBottom: 2 }}>Your Partner in</Text>
-            <Text style={{ fontSize: 11, fontWeight: 700, color: "#9E0038", marginBottom: 3 }}>
+            <Text style={{ fontSize: 11, fontWeight: 700, color: BRAND_PRIMARY, marginBottom: 3 }}>
               Digital Transformation
             </Text>
             <Text style={{ fontSize: 6.8, color: "#6B7280", lineHeight: 1.35 }}>
@@ -642,7 +660,7 @@ export function InvoiceDocument({
               </Text>
             </View>
 
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 5 }}>
               <Text style={{ fontSize: 7.5, color: TEXT_MUTED }}>
                 Paid: <Text style={{ fontWeight: 700, color: "#166534" }}>{formatMoney(paid)}</Text>
               </Text>
@@ -652,7 +670,7 @@ export function InvoiceDocument({
             </View>
 
             {invoicePayments.length > 0 ? (
-              <View>
+              <View style={{ marginBottom: 4 }}>
                 {invoicePayments.slice(0, 3).map((p) => (
                   <View key={p.id} style={styles.historyRow}>
                     <Text style={{ color: TEXT_MUTED }}>{p.paymentDate}</Text>
@@ -662,10 +680,47 @@ export function InvoiceDocument({
                 ))}
               </View>
             ) : (
-              <Text style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic" }}>
+              <Text style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic", marginBottom: 4 }}>
                 No payments recorded yet.
               </Text>
             )}
+
+            {/* Previous Balance & Pending Invoices */}
+            {hasPreviousBalance ? (
+              <View style={{ marginTop: 4, paddingTop: 4, borderTopWidth: 0.5, borderTopColor: BORDER_COLOR }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                  <Text style={{ fontSize: 7.5, fontWeight: 700, color: "#92400E" }}>
+                    Previous Balance Due:
+                  </Text>
+                  <Text style={{ fontSize: 7.5, fontWeight: 700, color: "#92400E" }}>
+                    {formatMoney(prevBalanceAmount)}
+                  </Text>
+                </View>
+
+                {previousOutstandingInvoices.length > 0 ? (
+                  <View style={{ marginTop: 1 }}>
+                    <Text style={{ fontSize: 6.8, color: TEXT_MUTED, marginBottom: 1 }}>
+                      Pending Invoices with Balance:
+                    </Text>
+                    {previousOutstandingInvoices.slice(0, 3).map((prev) => (
+                      <View key={prev.id} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 1, fontSize: 7 }}>
+                        <Text style={{ color: TEXT_DARK }}>
+                          • {prev.invoiceNumber} <Text style={{ color: TEXT_MUTED, fontSize: 6.5 }}>({prev.invoiceDate})</Text>
+                        </Text>
+                        <Text style={{ fontWeight: 700, color: "#B45309" }}>
+                          {formatMoney(prev.remaining)}
+                        </Text>
+                      </View>
+                    ))}
+                    {previousOutstandingInvoices.length > 3 ? (
+                      <Text style={{ fontSize: 6.5, color: TEXT_MUTED, fontStyle: "italic", marginTop: 1 }}>
+                        + {previousOutstandingInvoices.length - 3} more pending invoice(s)
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
           </View>
         </View>
 
