@@ -4,6 +4,7 @@ import { ReportsNav } from "@/components/layout/reports-nav";
 import { DateRangeFilter } from "@/components/layout/date-range-filter";
 import { StatusFilterSelect } from "@/components/layout/status-filter-select";
 import { Pagination } from "@/components/layout/pagination";
+import { PrintReportButton } from "@/components/reports/print-report-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { db } from "@/lib/db";
@@ -53,12 +54,20 @@ export default async function InvoiceReportPage({
 
   const customerOptions = [
     { value: "ALL", label: "All Customers" },
-    ...allCustomers.map((c) => ({ value: String(c.id), label: c.customerName })),
+    ...allCustomers.map((c) => ({
+      value: String(c.id),
+      label: c.customerName,
+      subLabel: c.companyName ?? undefined,
+    })),
   ];
 
   return (
     <div>
-      <PageHeader title="Invoice Report" description="Every invoice, with full totals and status." />
+      <PageHeader
+        title="Invoice Report"
+        description="Every invoice, with full totals and status."
+        actions={<PrintReportButton />}
+      />
       <ReportsNav current="/reports/invoices" />
       <DateRangeFilter basePath="/reports/invoices" dateFrom={dateFrom} dateTo={dateTo} preset={preset} extraParams={{ customerId, status }} />
 
@@ -70,6 +79,8 @@ export default async function InvoiceReportPage({
           options={customerOptions}
           extraParams={{ from: dateFrom, to: dateTo, preset, status }}
           className="h-9 w-56"
+          searchable
+          placeholder="Search customer..."
         />
         <StatusFilterSelect
           basePath="/reports/invoices"

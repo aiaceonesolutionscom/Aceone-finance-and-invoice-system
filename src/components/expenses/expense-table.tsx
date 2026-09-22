@@ -6,6 +6,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -26,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { CategoryCombobox, type CategoryOption } from "@/components/expenses/category-combobox";
 import { updateExpense, deleteExpense } from "@/actions/expenses";
 import { formatMoney, money, type MoneyInput } from "@/lib/money";
 
@@ -39,13 +41,17 @@ type Expense = {
   amount: MoneyInput;
   expenseDate: string;
   expenseTime: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
 };
 
-function EditExpenseDialog({ expense }: { expense: Expense }) {
+function EditExpenseDialog({ expense, categories }: { expense: Expense; categories: CategoryOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(expense.expenseName);
   const [amount, setAmount] = useState(money(expense.amount).toFixed(2));
+  const [categoryId, setCategoryId] = useState(expense.categoryId);
+  const [customCategory, setCustomCategory] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -59,15 +65,28 @@ function EditExpenseDialog({ expense }: { expense: Expense }) {
         </DialogHeader>
         <div className="space-y-3">
           <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Expense name" />
+          <CategoryCombobox
+            categories={categories}
+            categoryId={categoryId}
+            customCategory={customCategory}
+            onSelectExisting={(category) => {
+              setCategoryId(category.id);
+              setCustomCategory(null);
+            }}
+            onSelectCustom={(name) => {
+              setCategoryId(null);
+              setCustomCategory(name);
+            }}
+          />
           <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" inputMode="decimal" />
         </div>
         <DialogFooter>
           <Button
-            disabled={isPending || !name.trim() || !amount.trim()}
+            disabled={isPending || !name.trim() || !amount.trim() || (!categoryId && !customCategory)}
             onClick={() =>
               startTransition(async () => {
                 try {
-                  await updateExpense(expense.id, { expenseName: name, amount });
+                  await updateExpense(expense.id, { expenseName: name, amount, categoryId, customCategory });
                   toast.success("Expense updated");
                   setOpen(false);
                   router.refresh();
@@ -123,7 +142,7 @@ function DeleteExpenseButton({ expense }: { expense: Expense }) {
   );
 }
 
-export function ExpenseTable({ expenses }: { expenses: Expense[] }) {
+export function ExpenseTable({ expenses, categories }: { expenses: Expense[]; categories: CategoryOption[] }) {
   if (expenses.length === 0) {
     return (
       <div className="flex h-32 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
@@ -140,6 +159,7 @@ export function ExpenseTable({ expenses }: { expenses: Expense[] }) {
             <TableHead>Date</TableHead>
             <TableHead>Time</TableHead>
             <TableHead>Expense Name</TableHead>
+            <TableHead>Category</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-20" />
           </TableRow>
@@ -150,9 +170,12 @@ export function ExpenseTable({ expenses }: { expenses: Expense[] }) {
               <TableCell>{expense.expenseDate}</TableCell>
               <TableCell>{expense.expenseTime ?? "—"}</TableCell>
               <TableCell>{expense.expenseName}</TableCell>
+              <TableCell>
+                {expense.categoryName ? <Badge variant="outline">{expense.categoryName}</Badge> : "—"}
+              </TableCell>
               <TableCell className="text-right">{formatMoney(expense.amount)}</TableCell>
               <TableCell className="flex justify-end gap-1">
-                <EditExpenseDialog expense={expense} />
+                <EditExpenseDialog expense={expense} categories={categories} />
                 <DeleteExpenseButton expense={expense} />
               </TableCell>
             </TableRow>

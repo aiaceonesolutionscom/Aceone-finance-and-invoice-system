@@ -5,6 +5,7 @@ import { existsSync } from "fs";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getSessionUser } from "@/lib/auth";
 import { getInvoiceById } from "@/lib/db/queries/invoices";
+import { getSettings } from "@/lib/db/queries/settings";
 import { InvoiceDocument } from "@/components/pdf/invoice-document";
 import { logError } from "@/lib/log";
 
@@ -20,25 +21,36 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
 
-  const logo = data.invoice.companySnapshot.logo;
-  let logoAbsolutePath: string | null = null;
-  if (logo) {
-    const candidate = path.join(process.cwd(), "public", logo);
-    if (existsSync(candidate)) {
-      // @react-pdf/image misparses a bare Windows path (e.g. "D:\...") as a
-      // URL with scheme "D:" and tries to fetch() it as remote — converting
-      // to a proper file:// URL avoids that path entirely.
-      logoAbsolutePath = pathToFileURL(candidate).href;
-    }
-  }
+  const settingsRow = await getSettings().catch(() => null);
+  const invoiceData = {
+    ...data.invoice,
+    companySnapshot: {
+      ...settingsRow,
+      ...data.invoice.companySnapshot,
+      companyName: data.invoice.companySnapshot?.companyName || settingsRow?.companyName || "AceOne Creative Agency",
+      phone: data.invoice.companySnapshot?.phone || settingsRow?.phone || null,
+      email: data.invoice.companySnapshot?.email || settingsRow?.email || null,
+      website: data.invoice.companySnapshot?.website || settingsRow?.website || null,
+      address: data.invoice.companySnapshot?.address || settingsRow?.address || null,
+      companyTaxNumber: data.invoice.companySnapshot?.companyTaxNumber || settingsRow?.companyTaxNumber || null,
+      bankDetails: data.invoice.companySnapshot?.bankDetails || settingsRow?.bankDetails || null,
+    },
+  };
+
+  const redLogo = path.join(process.cwd(), "public", "logo-color.png");
+  const whiteLogo = path.join(process.cwd(), "public", "uploads", "logo-1789645041019-a1985521.png");
+
+  const logoAbsolutePath = existsSync(redLogo) ? pathToFileURL(redLogo).href : null;
+  const whiteLogoAbsolutePath = existsSync(whiteLogo) ? pathToFileURL(whiteLogo).href : null;
 
   try {
     const buffer = await renderToBuffer(
       InvoiceDocument({
-        invoice: data.invoice,
+        invoice: invoiceData,
         items: data.items,
         invoicePayments: data.payments,
         logoAbsolutePath,
+        whiteLogoAbsolutePath,
       })
     );
 

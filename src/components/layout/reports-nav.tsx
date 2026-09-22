@@ -5,6 +5,7 @@ const reportLinks = [
   { href: "/reports", label: "Business Overview" },
   { href: "/reports/outstanding", label: "Outstanding" },
   { href: "/reports/customer-revenue", label: "Customer Revenue" },
+  { href: "/reports/services", label: "Services Sold" },
   { href: "/reports/invoices", label: "Invoices" },
   { href: "/reports/payments", label: "Payments" },
   { href: "/reports/expenses", label: "Expense Analysis" },

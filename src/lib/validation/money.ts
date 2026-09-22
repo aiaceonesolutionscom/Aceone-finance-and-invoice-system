@@ -1,10 +1,13 @@
 import { z } from "zod";
 
-/** A monetary value coming from a form field: a non-negative decimal string. */
+/** A monetary value coming from a form field: strips commas and validates non-negative decimal. */
 export const moneyStringSchema = z
   .string()
   .trim()
-  .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount (e.g. 1000 or 1000.50)");
+  .transform((v) => v.replace(/,/g, ""))
+  .pipe(
+    z.string().regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount (e.g. 1000 or 1000.50)")
+  );
 
 /** Same as moneyStringSchema but must be strictly greater than zero. */
 export const positiveMoneyStringSchema = moneyStringSchema.refine(

@@ -13,32 +13,32 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-export type ServiceOption = { id: number; name: string };
+export type CategoryOption = { id: number; name: string };
 
-export function ServiceCombobox({
-  services,
-  serviceId,
-  customName,
+export function CategoryCombobox({
+  categories,
+  categoryId,
+  customCategory,
   onSelectExisting,
   onSelectCustom,
 }: {
-  services: ServiceOption[];
-  serviceId: number | null;
-  customName: string | null;
-  onSelectExisting: (service: ServiceOption) => void;
+  categories: CategoryOption[];
+  categoryId: number | null;
+  customCategory: string | null;
+  onSelectExisting: (category: CategoryOption) => void;
   onSelectCustom: (name: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const selectedLabel = useMemo(() => {
-    if (serviceId) return services.find((s) => s.id === serviceId)?.name ?? "";
-    if (customName) return customName;
+    if (categoryId) return categories.find((c) => c.id === categoryId)?.name ?? "";
+    if (customCategory) return customCategory;
     return "";
-  }, [serviceId, customName, services]);
+  }, [categoryId, customCategory, categories]);
 
-  const exactMatch = services.some(
-    (s) => s.name.toLowerCase() === search.trim().toLowerCase()
+  const exactMatch = categories.some(
+    (c) => c.name.toLowerCase() === search.trim().toLowerCase()
   );
 
   return (
@@ -46,9 +46,6 @@ export function ServiceCombobox({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        // Pre-fill the search box with whatever is currently selected so
-        // re-opening to fix a typo shows the existing text instead of a
-        // blank box that forces retyping the whole name from scratch.
         if (next) setSearch(selectedLabel);
       }}
     >
@@ -62,26 +59,26 @@ export function ServiceCombobox({
           />
         }
       >
-        {selectedLabel || "Select or type a service..."}
+        {selectedLabel || "Select or type a category..."}
         <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="Search or type a new service..."
+            placeholder="Search or type a new category..."
             value={search}
             onValueChange={setSearch}
           />
           <CommandList>
             <CommandGroup>
-              {services
-                .filter((s) => s.name.toLowerCase().includes(search.trim().toLowerCase()))
-                .map((service) => (
+              {categories
+                .filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
+                .map((category) => (
                   <CommandItem
-                    key={service.id}
-                    value={service.name}
+                    key={category.id}
+                    value={category.name}
                     onSelect={() => {
-                      onSelectExisting(service);
+                      onSelectExisting(category);
                       setSearch("");
                       setOpen(false);
                     }}
@@ -89,10 +86,10 @@ export function ServiceCombobox({
                     <Check
                       className={cn(
                         "mr-2 size-4",
-                        service.id === serviceId ? "opacity-100" : "opacity-0"
+                        category.id === categoryId ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {service.name}
+                    {category.name}
                   </CommandItem>
                 ))}
               {search.trim() && !exactMatch ? (

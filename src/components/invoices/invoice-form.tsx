@@ -97,8 +97,10 @@ export function InvoiceForm({
     startTransition(async () => {
       try {
         if (mode === "edit" && invoiceId) {
+          toast.success("Invoice updated successfully");
           await updateInvoice(invoiceId, values);
         } else {
+          toast.success("Invoice created successfully");
           await createInvoice(values, { openPaymentAfter });
         }
       } catch (error) {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getProfitLoss } from "@/lib/db/queries/reports";
 import { getPresetRange } from "@/lib/date-ranges";
 import { formatMoney } from "@/lib/money";
+import { PrintReportButton } from "@/components/reports/print-report-button";
 
 export default async function ProfitLossPage({
   searchParams,
@@ -21,6 +22,11 @@ export default async function ProfitLossPage({
   return (
     <div>
       <PageHeader title="Profit / Loss" description="Billed-revenue view: Total Invoiced minus Total Expenses." />
+      <PageHeader
+        title="Profit / Loss"
+        description="Billed-revenue view: Total Invoiced minus Total Expenses."
+        actions={<PrintReportButton />}
+      />
       <ReportsNav current="/reports/profit-loss" />
       <DateRangeFilter basePath="/reports/profit-loss" dateFrom={dateFrom} dateTo={dateTo} preset={preset} />
 

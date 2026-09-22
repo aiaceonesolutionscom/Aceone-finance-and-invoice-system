@@ -30,24 +30,26 @@ export function Pagination({
         Page {currentPage} of {totalPages}
       </span>
       <div className="flex gap-2">
-        <Button
-          render={<Link href={buildHref(basePath, { ...extraParams, page: currentPage > 1 ? currentPage - 1 : 1 })} />}
-          variant="outline"
-          size="sm"
-          disabled={currentPage <= 1}
-        >
-          <ChevronLeft className="size-4" />
-          Previous
-        </Button>
-        <Button
-          render={<Link href={buildHref(basePath, { ...extraParams, page: currentPage < totalPages ? currentPage + 1 : totalPages })} />}
-          variant="outline"
-          size="sm"
-          disabled={currentPage >= totalPages}
-        >
-          Next
-          <ChevronRight className="size-4" />
-        </Button>
+        {currentPage > 1 ? (
+          <Button
+            render={<Link href={buildHref(basePath, { ...extraParams, page: currentPage - 1 })} />}
+            variant="outline"
+            size="sm"
+          >
+            <ChevronLeft className="size-4" />
+            Previous
+          </Button>
+        ) : null}
+        {currentPage < totalPages ? (
+          <Button
+            render={<Link href={buildHref(basePath, { ...extraParams, page: currentPage + 1 })} />}
+            variant="outline"
+            size="sm"
+          >
+            Next
+            <ChevronRight className="size-4" />
+          </Button>
+        ) : null}
       </div>
     </div>
   );

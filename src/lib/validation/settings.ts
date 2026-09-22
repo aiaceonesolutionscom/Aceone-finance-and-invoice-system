@@ -1,9 +1,18 @@
 import { z } from "zod";
 
 export const companySettingsSchema = z.object({
-  companyName: z.string().trim().min(1, "Company name is required"),
+  companyName: z
+    .string()
+    .trim()
+    .min(2, "Company name must be at least 2 characters")
+    .regex(/[a-zA-Z\u0600-\u06FF]/, "Company name must contain letters, not just numbers"),
   address: z.string().trim().optional().or(z.literal("")),
-  phone: z.string().trim().optional().or(z.literal("")),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^(\+?[0-9\s\-().]{7,25})?$/, "Enter a valid phone number (e.g. +92 321 9338893)")
+    .optional()
+    .or(z.literal("")),
   email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
   website: z.string().trim().optional().or(z.literal("")),
   companyTaxNumber: z.string().trim().optional().or(z.literal("")),
@@ -20,7 +29,7 @@ export const invoiceSettingsSchema = z.object({
   taxRate: z
     .string()
     .trim()
-    .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid percentage")
+    .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid percentage (e.g. 15 or 15.5)")
     .optional()
     .or(z.literal("")),
   taxAutoApply: z.boolean(),

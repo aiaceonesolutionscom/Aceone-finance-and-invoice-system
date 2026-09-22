@@ -25,6 +25,7 @@ async function main() {
       website: "https://aceonesolutions.com",
       address:
         "B-156, W3FW+2R9, Block 6, Gulshan-e-Iqbal, Karachi, 75300, Pakistan (offices also in Lahore, UAE, Saudi Arabia & USA)",
+      companyTaxNumber: "4240107919689",
       invoicePrefix: "INV-",
       nextInvoiceNumber: 1,
       taxEnabled: false,

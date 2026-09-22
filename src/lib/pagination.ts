@@ -1,4 +1,4 @@
-export const PAGE_SIZE = 20;
+export const PAGE_SIZE = 10;
 
 export function paginationParams(page?: string) {
   const pageNum = Math.max(1, Number(page) || 1);

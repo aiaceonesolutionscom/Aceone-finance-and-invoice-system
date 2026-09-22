@@ -191,12 +191,25 @@ export const payments = pgTable("payments", {
   ...timestamps,
 });
 
+export const expenseCategories = pgTable(
+  "expense_categories",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("expense_categories_name_lower_idx").on(sql`lower(${table.name})`),
+  ]
+);
+
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
   expenseName: text("expense_name").notNull(),
   amount: money("amount").notNull(),
   expenseDate: date("expense_date").notNull(),
   expenseTime: time("expense_time"),
+  categoryId: integer("category_id").references(() => expenseCategories.id, { onDelete: "set null" }),
   createdBy: text("created_by"),
   ...timestamps,
 });

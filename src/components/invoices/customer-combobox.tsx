@@ -61,7 +61,7 @@ export function CustomerCombobox({
               {customers.map((customer) => (
                 <CommandItem
                   key={customer.id}
-                  value={`${customer.customerName} ${customer.companyName ?? ""}`}
+                  value={`${customer.customerName} ${customer.companyName ?? ""} ${customer.phone ?? ""} ${customer.email ?? ""}`}
                   onSelect={() => {
                     onChange(customer);
                     setOpen(false);

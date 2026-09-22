@@ -55,7 +55,11 @@ export default async function InvoicesPage({
 
   const customerOptions = [
     { value: "ALL", label: "All Customers" },
-    ...allCustomers.map((c) => ({ value: String(c.id), label: c.customerName })),
+    ...allCustomers.map((c) => ({
+      value: String(c.id),
+      label: c.customerName,
+      subLabel: c.companyName ?? undefined,
+    })),
   ];
 
   return (
@@ -99,6 +103,8 @@ export default async function InvoicesPage({
           options={customerOptions}
           extraParams={{ q, status, from: dateFrom, to: dateTo, preset }}
           className="h-9 w-56"
+          searchable
+          placeholder="Search customer..."
         />
       </div>
 

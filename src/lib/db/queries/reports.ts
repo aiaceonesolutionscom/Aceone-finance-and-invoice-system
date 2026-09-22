@@ -229,3 +229,150 @@ export async function getBusinessOverview(filter: ReportDateFilter = {}) {
     majorExpenses: expenseBreakdown,
   };
 }
+
+export type ServicesReportFilter = {
+  serviceId?: number;
+  customerId?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  offset?: number;
+};
+
+/** Services Sold Report: itemized services sold, customers, rates, and service-level revenue breakdown */
+export async function getServicesReport(filter: ServicesReportFilter = {}) {
+  const conditions = [sql`i.status != 'CANCELLED'`];
+  if (filter.serviceId) conditions.push(sql`ii.service_id = ${filter.serviceId}`);
+  if (filter.customerId) conditions.push(sql`i.customer_id = ${filter.customerId}`);
+  if (filter.dateFrom) conditions.push(sql`i.invoice_date >= ${filter.dateFrom}`);
+  if (filter.dateTo) conditions.push(sql`i.invoice_date <= ${filter.dateTo}`);
+
+  const limitClause = filter.limit !== undefined ? sql`LIMIT ${filter.limit} OFFSET ${filter.offset ?? 0}` : sql``;
+
+  // Itemized sales list
+  const itemsQuery = sql`
+    SELECT
+      ii.id,
+      ii.invoice_id,
+      i.invoice_number,
+      i.invoice_date,
+      i.customer_id,
+      c.customer_name,
+      c.company_name,
+      ii.service_id,
+      ii.service_name_snapshot,
+      ii.rate,
+      ii.total,
+      i.status AS invoice_status,
+      COUNT(*) OVER() AS total_count
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+    JOIN customers c ON c.id = i.customer_id
+    LEFT JOIN services s ON s.id = ii.service_id
+    WHERE ${sql.join(conditions, sql` AND `)}
+    ORDER BY i.invoice_date DESC, ii.id DESC
+    ${limitClause}
+  `;
+
+  // Aggregated breakdown per service
+  const breakdownQuery = sql`
+    SELECT
+      COALESCE(s.name, ii.service_name_snapshot) AS service_name,
+      ii.service_id,
+      COUNT(ii.id) AS units_sold,
+      COUNT(DISTINCT i.customer_id) AS unique_customers,
+      SUM(ii.total) AS total_revenue,
+      AVG(ii.rate) AS avg_rate
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+    JOIN customers c ON c.id = i.customer_id
+    LEFT JOIN services s ON s.id = ii.service_id
+    WHERE ${sql.join(conditions, sql` AND `)}
+    GROUP BY COALESCE(s.name, ii.service_name_snapshot), ii.service_id
+    ORDER BY total_revenue DESC
+  `;
+
+  // Grand totals
+  const totalsQuery = sql`
+    SELECT
+      COUNT(ii.id) AS total_items,
+      COALESCE(SUM(ii.total), 0) AS total_revenue,
+      COUNT(DISTINCT i.customer_id) AS total_customers,
+      COUNT(DISTINCT ii.service_name_snapshot) AS distinct_services
+    FROM invoice_items ii
+    JOIN invoices i ON i.id = ii.invoice_id
+    WHERE ${sql.join(conditions, sql` AND `)}
+  `;
+
+  const [itemsRes, breakdownRes, totalsRes] = await Promise.all([
+    db.execute<{
+      id: number;
+      invoice_id: number;
+      invoice_number: string;
+      invoice_date: string;
+      customer_id: number;
+      customer_name: string;
+      company_name: string | null;
+      service_id: number | null;
+      service_name_snapshot: string;
+      rate: string;
+      total: string;
+      invoice_status: string;
+      total_count: string;
+    }>(itemsQuery),
+    db.execute<{
+      service_name: string;
+      service_id: number | null;
+      units_sold: string;
+      unique_customers: string;
+      total_revenue: string;
+      avg_rate: string;
+    }>(breakdownQuery),
+    db.execute<{
+      total_items: string;
+      total_revenue: string;
+      total_customers: string;
+      distinct_services: string;
+    }>(totalsQuery),
+  ]);
+
+  const items = itemsRes.rows.map((row) => ({
+    id: row.id,
+    invoiceId: row.invoice_id,
+    invoiceNumber: row.invoice_number,
+    invoiceDate: row.invoice_date,
+    customerId: row.customer_id,
+    customerName: row.customer_name,
+    companyName: row.company_name,
+    serviceId: row.service_id,
+    serviceName: row.service_name_snapshot,
+    rate: money(row.rate),
+    total: money(row.total),
+    invoiceStatus: row.invoice_status,
+  }));
+
+  const breakdown = breakdownRes.rows.map((row) => ({
+    serviceName: row.service_name,
+    serviceId: row.service_id,
+    unitsSold: Number(row.units_sold),
+    uniqueCustomers: Number(row.unique_customers),
+    totalRevenue: money(row.total_revenue),
+    avgRate: money(row.avg_rate),
+  }));
+
+  const totals = {
+    totalItems: Number(totalsRes.rows[0]?.total_items || 0),
+    totalRevenue: money(totalsRes.rows[0]?.total_revenue || "0"),
+    totalCustomers: Number(totalsRes.rows[0]?.total_customers || 0),
+    distinctServices: Number(totalsRes.rows[0]?.distinct_services || 0),
+  };
+
+  const totalCount = itemsRes.rows.length > 0 ? Number(itemsRes.rows[0].total_count) : 0;
+
+  return {
+    items,
+    breakdown,
+    totals,
+    totalCount,
+  };
+}

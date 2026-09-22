@@ -4,6 +4,7 @@ import { ReportsNav } from "@/components/layout/reports-nav";
 import { DateRangeFilter } from "@/components/layout/date-range-filter";
 import { StatusFilterSelect } from "@/components/layout/status-filter-select";
 import { Pagination } from "@/components/layout/pagination";
+import { PrintReportButton } from "@/components/reports/print-report-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/lib/db";
@@ -55,13 +56,21 @@ export default async function PaymentReportPage({
 
   const customerOptions = [
     { value: "ALL", label: "All Customers" },
-    ...allCustomers.map((c) => ({ value: String(c.id), label: c.customerName })),
+    ...allCustomers.map((c) => ({
+      value: String(c.id),
+      label: c.customerName,
+      subLabel: c.companyName ?? undefined,
+    })),
   ];
   const methodSelectOptions = methodOptions.map((m) => ({ value: m, label: m === "ALL" ? "All Methods" : methodLabels[m] }));
 
   return (
     <div>
-      <PageHeader title="Payment Report" description="Every payment, filterable by customer, method, and date." />
+      <PageHeader
+        title="Payment Report"
+        description="Every payment, filterable by customer, method, and date."
+        actions={<PrintReportButton />}
+      />
       <ReportsNav current="/reports/payments" />
       <DateRangeFilter basePath="/reports/payments" dateFrom={dateFrom} dateTo={dateTo} preset={preset} extraParams={{ customerId, method }} />
 
@@ -73,6 +82,8 @@ export default async function PaymentReportPage({
           options={customerOptions}
           extraParams={{ from: dateFrom, to: dateTo, preset, method }}
           className="h-9 w-56"
+          searchable
+          placeholder="Search customer..."
         />
         <StatusFilterSelect
           basePath="/reports/payments"

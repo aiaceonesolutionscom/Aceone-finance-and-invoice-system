@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/layout/header";
 import { ReportsNav } from "@/components/layout/reports-nav";
 import { DateRangeFilter } from "@/components/layout/date-range-filter";
+import { PrintReportButton } from "@/components/reports/print-report-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCustomerRevenue } from "@/lib/db/queries/reports";
 import { getPresetRange } from "@/lib/date-ranges";
@@ -22,7 +23,11 @@ export default async function CustomerRevenuePage({
 
   return (
     <div>
-      <PageHeader title="Customer-wise Revenue" description="How much billing each customer generated." />
+      <PageHeader
+        title="Customer-wise Revenue"
+        description="How much billing each customer generated."
+        actions={<PrintReportButton />}
+      />
       <ReportsNav current="/reports/customer-revenue" />
       <DateRangeFilter basePath="/reports/customer-revenue" dateFrom={dateFrom} dateTo={dateTo} preset={preset} />
 

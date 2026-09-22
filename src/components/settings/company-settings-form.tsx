@@ -74,7 +74,7 @@ export function CompanySettingsForm({ defaultValues }: { defaultValues: CompanyS
               <FormItem>
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input type="tel" placeholder="e.g. +92 321 9338893" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,9 +125,13 @@ export function CompanySettingsForm({ defaultValues }: { defaultValues: CompanyS
           name="bankDetails"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Bank Details</FormLabel>
+              <FormLabel>Bank Details (Payment Info for Invoices)</FormLabel>
               <FormControl>
-                <Textarea rows={3} placeholder="Bank name, account title, account number, IBAN..." {...field} />
+                <Textarea
+                  rows={5}
+                  placeholder={`Bank Name: Meezan Bank\nAccount Title: AceOne Solutions\nAccount No.: 0104-0101234567\nIBAN: PK39MEZN0001040101234567\nBranch: Gulshan-e-Iqbal, Karachi`}
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

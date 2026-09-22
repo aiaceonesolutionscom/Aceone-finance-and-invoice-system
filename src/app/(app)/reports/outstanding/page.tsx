@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/layout/header";
 import { ReportsNav } from "@/components/layout/reports-nav";
 import { StatusFilterSelect } from "@/components/layout/status-filter-select";
 import { Pagination } from "@/components/layout/pagination";
+import { PrintReportButton } from "@/components/reports/print-report-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
@@ -31,7 +32,11 @@ export default async function OutstandingReportPage({
 
   return (
     <div>
-      <PageHeader title="Outstanding / Receivables" description="Who has not paid, and how much." />
+      <PageHeader
+        title="Outstanding / Receivables"
+        description="Who has not paid, and how much."
+        actions={<PrintReportButton />}
+      />
       <ReportsNav current="/reports/outstanding" />
 
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">

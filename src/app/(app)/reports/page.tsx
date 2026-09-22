@@ -103,7 +103,7 @@ export default async function ReportsOverviewPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Top Customers</CardTitle>
+            <CardTitle className="text-base">Top 10 Customers</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {overview.topCustomers.length === 0 ? (
@@ -141,7 +141,7 @@ export default async function ReportsOverviewPage({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Major Expenses</CardTitle>
+            <CardTitle className="text-base">Top 10 Expenses</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {overview.majorExpenses.length === 0 ? (

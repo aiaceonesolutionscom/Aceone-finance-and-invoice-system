@@ -107,7 +107,7 @@ export function CustomerForm({
             <FormItem>
               <FormLabel>Phone</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. 0300-1234567" {...field} />
+                <Input type="tel" placeholder="e.g. 0300-1234567" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
