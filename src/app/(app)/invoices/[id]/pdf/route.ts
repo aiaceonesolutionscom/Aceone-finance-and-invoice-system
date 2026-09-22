@@ -55,7 +55,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   }));
 
   const redLogo = path.join(process.cwd(), "public", "logo-color.png");
-  const whiteLogo = path.join(process.cwd(), "public", "uploads", "logo-1789645041019-a1985521.png");
+  const whiteLogo = path.join(process.cwd(), "public", "logo-white.png");
 
   const logoAbsolutePath = existsSync(redLogo) ? pathToFileURL(redLogo).href : null;
   const whiteLogoAbsolutePath = existsSync(whiteLogo) ? pathToFileURL(whiteLogo).href : null;
