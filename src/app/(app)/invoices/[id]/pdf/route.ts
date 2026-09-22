@@ -54,7 +54,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     paid: inv.paid.toString(),
   }));
 
-  const redLogo = path.join(process.cwd(), "public", "logo-color.png");
+  const redLogo = path.join(process.cwd(), "public", "aceone-logo.png");
   const whiteLogo = path.join(process.cwd(), "public", "logo-white.png");
 
   const logoAbsolutePath = existsSync(redLogo) ? pathToFileURL(redLogo).href : null;

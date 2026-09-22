@@ -12,9 +12,9 @@ export default async function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center bg-white p-6">
-      <Card className="relative w-full max-w-sm border-t-4" style={{ borderTopColor: "#a333c8" }}>
+      <Card className="relative w-full max-w-sm border-t-4" style={{ borderTopColor: "#BE1960" }}>
         <CardHeader className="flex flex-col items-center text-center">
-          <Image src="/logo-color.png" alt="AceOne Creative Agency" width={218} height={80} className="h-auto w-48" />
+          <Image src="/aceone-logo.png" alt="AceOne Creative Agency" width={218} height={80} className="h-auto w-48" />
           <p className="text-sm text-muted-foreground">Sign in to the finance system</p>
         </CardHeader>
         <CardContent>

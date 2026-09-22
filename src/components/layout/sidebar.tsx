@@ -215,7 +215,7 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
     <>
       {/* Mobile top bar */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b bg-sidebar px-4 md:hidden">
-        <Image src="/logo-color.png" alt="AceOne Creative Agency" width={110} height={40} className="h-auto w-28" />
+        <Image src="/aceone-logo.png" alt="AceOne Creative Agency" width={110} height={40} className="h-auto w-28" />
         <Button variant="ghost" size="icon" aria-label="Open menu" onClick={() => setMobileOpen(true)}>
           <Menu className="size-5" />
         </Button>
@@ -227,7 +227,7 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
           <aside className="relative flex h-full w-72 max-w-[80vw] flex-col bg-sidebar text-sidebar-foreground shadow-xl">
             <div className="flex h-14 items-center justify-between border-b px-4">
-              <Image src="/logo-color.png" alt="AceOne Creative Agency" width={110} height={40} className="h-auto w-28" />
+              <Image src="/aceone-logo.png" alt="AceOne Creative Agency" width={110} height={40} className="h-auto w-28" />
               <Button variant="ghost" size="icon" aria-label="Close menu" onClick={() => setMobileOpen(false)}>
                 <X className="size-5" />
               </Button>
@@ -258,7 +258,7 @@ export function Sidebar({ userEmail }: { userEmail: string }) {
       ) : (
         <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
           <div className="flex h-16 items-center justify-between border-b px-5">
-            <Image src="/logo-color.png" alt="AceOne Creative Agency" width={131} height={48} className="h-auto w-32" />
+            <Image src="/aceone-logo.png" alt="AceOne Creative Agency" width={131} height={48} className="h-auto w-32" />
             <Button variant="ghost" size="icon" aria-label="Collapse sidebar" onClick={toggleCollapsed}>
               <PanelLeftClose className="size-4" />
             </Button>
