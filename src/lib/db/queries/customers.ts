@@ -34,6 +34,7 @@ export async function listCustomers(search?: string, pagination?: { limit: numbe
       SELECT i.customer_id, SUM(p.amount) AS total_paid
       FROM payments p
       JOIN invoices i ON i.id = p.invoice_id
+      WHERE i.status != 'CANCELLED'
       GROUP BY i.customer_id
     ) pay ON pay.customer_id = c.id
     ${

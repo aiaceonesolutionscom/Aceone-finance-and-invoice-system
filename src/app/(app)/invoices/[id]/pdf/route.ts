@@ -5,7 +5,9 @@ import { existsSync } from "fs";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getInvoiceById, getPreviousOutstanding } from "@/lib/db/queries/invoices";
+import { sql } from "drizzle-orm";
+import { money } from "@/lib/money";
+import { getInvoiceById } from "@/lib/db/queries/invoices";
 import { getSettings } from "@/lib/db/queries/settings";
 import { InvoiceDocument } from "@/components/pdf/invoice-document";
 import { logError } from "@/lib/log";
@@ -22,13 +24,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
 
-  const [settingsRow, previousOutstanding] = await Promise.all([
-    getSettings().catch(() => null),
-    getPreviousOutstanding(db, data.invoice.customerId, data.invoice.id).catch(() => ({
-      invoices: [],
-      previousOutstandingAmount: null,
-    })),
-  ]);
+  const settingsRow = await getSettings().catch(() => null);
 
   const invoiceData = {
     ...data.invoice,
@@ -45,14 +41,23 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     },
   };
 
-  const previousOutstandingInvoices = (previousOutstanding?.invoices ?? []).map((inv) => ({
-    id: inv.id,
-    invoiceNumber: inv.invoiceNumber,
-    invoiceDate: inv.invoiceDate,
-    remaining: inv.remaining.toString(),
-    total: inv.total.toString(),
-    paid: inv.paid.toString(),
-  }));
+  const siblingInvoiceNumbers = new Set(
+    data.payments.flatMap((p) => p.siblingInvoices?.map((s) => s.invoiceNumber) || [])
+  );
+
+  const previousOutstandingInvoices = data.previousInvoices
+    .filter(
+      (inv) =>
+        money(inv.remaining).gt(0) ||
+        siblingInvoiceNumbers.has(inv.invoiceNumber) ||
+        inv.isContributedToThisInvoice
+    )
+    .map((inv) => ({
+      ...inv,
+      isPaidWithThisInvoice:
+        siblingInvoiceNumbers.has(inv.invoiceNumber) ||
+        Boolean(inv.isContributedToThisInvoice && money(inv.remaining).lte(0)),
+    }));
 
   const redLogo = path.join(process.cwd(), "public", "aceone-logo.png");
   const whiteLogo = path.join(process.cwd(), "public", "logo-white.png");
@@ -69,6 +74,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         previousOutstandingInvoices,
         logoAbsolutePath,
         whiteLogoAbsolutePath,
+        rolledIntoInvoice: data.rolledIntoInvoice,
       })
     );
 

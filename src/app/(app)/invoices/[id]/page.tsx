@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { notFound } from "next/navigation";
-import { Pencil, FileDown } from "lucide-react";
+import { Pencil, FileDown, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/layout/header";
 import { BackButton } from "@/components/layout/back-button";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,8 @@ import { InvoiceStatusBadge } from "@/components/invoices/invoice-status-badge";
 import { PaymentFormDialog } from "@/components/payments/payment-form-dialog";
 import { DeletePaymentButton } from "@/components/payments/delete-payment-button";
 import { CancelInvoiceButton } from "@/components/invoices/cancel-invoice-button";
-import { getInvoiceById, getPreviousOutstanding } from "@/lib/db/queries/invoices";
-import { db } from "@/lib/db";
-import { formatMoney } from "@/lib/money";
+import { getInvoiceById } from "@/lib/db/queries/invoices";
+import { formatMoney, money, sumMoney } from "@/lib/money";
 
 const methodLabels: Record<string, string> = {
   CASH: "Cash",
@@ -37,18 +36,39 @@ export default async function InvoiceDetailPage({
   const data = await getInvoiceById(Number(id));
   if (!data) notFound();
 
-  const { invoice, items, payments, paid, remaining } = data;
+  const { invoice, items, payments, paid, remaining, previousInvoices, previousRemaining, totalAccountRemaining } = data;
   const includedPreviousOutstanding = Number(invoice.totalAmountDue) > Number(invoice.currentInvoiceTotal);
-  // Only offer to split a payment toward the customer's other outstanding
-  // invoices when THIS invoice actually rolled that balance into its own
-  // total — if the operator deliberately left it out, this invoice has no
-  // business showing or settling that unrelated balance.
-  const { invoices: previousOutstandingInvoices } = includedPreviousOutstanding
-    ? await getPreviousOutstanding(db, invoice.customerId, invoice.id)
-    : { invoices: [] };
+  const siblingInvoiceNumbers = new Set(
+    payments.flatMap((p) => p.siblingInvoices.map((s) => s.invoiceNumber))
+  );
+  const relevantPreviousInvoices = previousInvoices
+    .filter(
+      (inv) =>
+        money(inv.remaining).gt(0) ||
+        siblingInvoiceNumbers.has(inv.invoiceNumber) ||
+        inv.isContributedToThisInvoice
+    )
+    .map((inv) => ({
+      ...inv,
+      isPaidWithThisInvoice:
+        siblingInvoiceNumbers.has(inv.invoiceNumber) ||
+        Boolean(inv.isContributedToThisInvoice && money(inv.remaining).lte(0)),
+    }));
+  const pendingPreviousInvoices = relevantPreviousInvoices.filter((inv) => money(inv.remaining).gt(0));
+  const hasPreviousInvoices = relevantPreviousInvoices.length > 0;
+  const isPreviousSettled = hasPreviousInvoices && previousRemaining.lte(0);
+  const isFullyPaid = remaining.lte(0) && (!hasPreviousInvoices || isPreviousSettled);
+
+  const olderSiblingPayments = payments.flatMap((p) =>
+    p.siblingInvoices.filter((s) => s.isOlderInvoice)
+  );
+  const totalPaidTowardsPrevious = sumMoney(olderSiblingPayments.map((s) => s.amount));
+  const hasOlderSiblingPayments = totalPaidTowardsPrevious.gt(0);
+  const grandTotalPaid = paid.plus(totalPaidTowardsPrevious);
+
   const canEdit = invoice.status !== "CANCELLED";
   const canCancel = invoice.status !== "CANCELLED" && invoice.status !== "PAID";
-  const canRecordPayment = invoice.status !== "CANCELLED" && (remaining.gt(0) || previousOutstandingInvoices.length > 0);
+  const canRecordPayment = invoice.status !== "CANCELLED" && (remaining.gt(0) || pendingPreviousInvoices.length > 0);
 
   return (
     <div>
@@ -76,10 +96,10 @@ export default async function InvoiceDetailPage({
                 invoiceNumber={invoice.invoiceNumber}
                 remaining={remaining.toFixed(2)}
                 defaultOpen={openPayment === "1"}
-                previousOutstandingInvoices={previousOutstandingInvoices.map((inv) => ({
+                previousOutstandingInvoices={pendingPreviousInvoices.map((inv) => ({
                   id: inv.id,
                   invoiceNumber: inv.invoiceNumber,
-                  remaining: inv.remaining.toFixed(2),
+                  remaining: inv.remaining,
                 }))}
               />
             ) : null}
@@ -146,6 +166,27 @@ export default async function InvoiceDetailPage({
               <CardTitle className="text-base">Payment History</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 px-3.5 py-2.5 text-xs">
+                <div className="flex flex-wrap items-center gap-4">
+                  <span>
+                    Paid (This Invoice): <strong className="font-semibold text-emerald-600 dark:text-emerald-400">{formatMoney(paid)}</strong>
+                  </span>
+                  {hasOlderSiblingPayments ? (
+                    <span>
+                      Paid (Previous Dues): <strong className="font-semibold text-primary">{formatMoney(totalPaidTowardsPrevious)}</strong>
+                    </span>
+                  ) : null}
+                  {hasOlderSiblingPayments ? (
+                    <span>
+                      Total Received: <strong className="font-semibold text-foreground">{formatMoney(grandTotalPaid)}</strong>
+                    </span>
+                  ) : null}
+                </div>
+                <div>
+                  Remaining: <strong className={`font-semibold ${remaining.gt(0) ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>{formatMoney(remaining)}</strong>
+                </div>
+              </div>
+
               {payments.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
                   No payments recorded yet.
@@ -168,8 +209,13 @@ export default async function InvoiceDetailPage({
                         <TableRow>
                           <TableCell>{payment.paymentDate}</TableCell>
                           <TableCell>{payment.paymentTime ?? "—"}</TableCell>
-                          <TableCell>{methodLabels[payment.paymentMethod] ?? payment.paymentMethod}</TableCell>
-                          <TableCell className="text-right">{formatMoney(payment.amount)}</TableCell>
+                          <TableCell>
+                            {methodLabels[payment.paymentMethod] ?? payment.paymentMethod}
+                            {payment.siblingInvoices.length > 0 ? (
+                              <span className="ml-1.5 text-xs text-muted-foreground">(This Invoice)</span>
+                            ) : null}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">{formatMoney(payment.amount)}</TableCell>
                           <TableCell>{payment.reference ?? "—"}</TableCell>
                           <TableCell>
                             <DeletePaymentButton paymentId={payment.id} />
@@ -177,15 +223,34 @@ export default async function InvoiceDetailPage({
                         </TableRow>
                         {payment.siblingInvoices.length > 0 ? (
                           <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={6} className="pt-0 pb-2 text-xs text-muted-foreground">
-                              This payment was recorded together with:{" "}
-                              {payment.siblingInvoices.map((s, i) => (
-                                <span key={i}>
-                                  {i > 0 ? ", " : ""}
-                                  <span className="font-medium text-foreground">{s.invoiceNumber}</span> (
-                                  {formatMoney(s.amount)})
-                                </span>
-                              ))}
+                            <TableCell colSpan={6} className="pt-0 pb-3 text-xs text-muted-foreground">
+                              <div className="space-y-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2">
+                                <div className="flex flex-wrap items-center justify-between font-medium text-foreground">
+                                  <span>Combined Payment Breakdown:</span>
+                                  <span className="text-primary font-semibold">
+                                    Total Collected: {formatMoney(payment.batchTotal || payment.amount)}
+                                  </span>
+                                </div>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between text-muted-foreground">
+                                    <span>• Applied to This Invoice ({invoice.invoiceNumber}):</span>
+                                    <span className="font-medium text-foreground">{formatMoney(payment.amount)}</span>
+                                  </div>
+                                  {payment.siblingInvoices.map((s, i) => {
+                                    const isOlder = s.isOlderInvoice ?? false;
+                                    const method = methodLabels[s.paymentMethod || payment.paymentMethod] ?? payment.paymentMethod;
+                                    return (
+                                      <div key={i} className="flex justify-between text-muted-foreground">
+                                        <span>
+                                          {"• "}{isOlder ? "Paid towards previous invoice: " : "Paid with invoice: "}
+                                          <strong className="font-medium text-foreground">{s.invoiceNumber}</strong> ({method})
+                                        </span>
+                                        <span className="font-medium text-foreground">{formatMoney(s.amount)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ) : null}
@@ -201,7 +266,7 @@ export default async function InvoiceDetailPage({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Totals</CardTitle>
+              <CardTitle className="text-base">Totals & Balance</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -229,18 +294,30 @@ export default async function InvoiceDetailPage({
               </div>
               {includedPreviousOutstanding ? (
                 <div className="flex justify-between text-amber-700 dark:text-amber-400">
-                  <span>Previous Outstanding</span>
+                  <span>Previous Outstanding (at billing)</span>
                   <span>{formatMoney(invoice.previousOutstandingAmount)}</span>
+                </div>
+              ) : null}
+              {includedPreviousOutstanding && isPreviousSettled ? (
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                  <span>Previous Balance Settled</span>
+                  <span>- {formatMoney(invoice.previousOutstandingAmount)} (Paid)</span>
                 </div>
               ) : null}
               <Separator />
               <div className="flex justify-between text-base font-semibold">
-                <span>Total Amount Due</span>
-                <span>{formatMoney(invoice.totalAmountDue)}</span>
+                <span>{isFullyPaid ? "Net Balance Due" : "Total Amount Due"}</span>
+                <span className={isFullyPaid ? "text-emerald-700 dark:text-emerald-400" : ""}>
+                  {isFullyPaid ? "PKR 0.00" : formatMoney(totalAccountRemaining)}
+                </span>
               </div>
-              {includedPreviousOutstanding ? (
-                <p className="text-xs text-muted-foreground">
-                  Includes {formatMoney(invoice.previousOutstandingAmount)} still owed from an earlier invoice — paying off this invoice does not clear that balance.
+              {isFullyPaid ? (
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                  {"✓ All invoices and previous balances are fully settled."}
+                </p>
+              ) : includedPreviousOutstanding && previousRemaining.gt(0) ? (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Includes {formatMoney(previousRemaining)} still pending from earlier invoice(s).
                 </p>
               ) : null}
             </CardContent>
@@ -248,17 +325,88 @@ export default async function InvoiceDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Payment Summary (This Invoice)</CardTitle>
+              <CardTitle className="text-base">Payment Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Paid</span>
-                <span>{formatMoney(paid)}</span>
+                <span className="text-muted-foreground">Total Paid (This Invoice)</span>
+                <span className="font-semibold text-emerald-700 dark:text-emerald-400">{formatMoney(paid)}</span>
               </div>
               <div className="flex justify-between font-medium">
                 <span>Remaining (This Invoice)</span>
-                <span>{formatMoney(remaining)}</span>
+                <span className={remaining.lte(0) ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}>
+                  {remaining.lte(0) ? "PKR 0.00 (Paid)" : formatMoney(remaining)}
+                </span>
               </div>
+              {hasOlderSiblingPayments ? (
+                <>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Paid Towards Previous Dues</span>
+                    <span className="font-semibold text-primary">{formatMoney(totalPaidTowardsPrevious)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Grand Total Received</span>
+                    <span className="font-semibold text-foreground">{formatMoney(grandTotalPaid)}</span>
+                  </div>
+                </>
+              ) : null}
+              {hasPreviousInvoices ? (
+                <>
+                  <Separator />
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Previous Invoices Balance</span>
+                    <span className={isPreviousSettled ? "font-semibold text-emerald-700 dark:text-emerald-400" : "font-semibold text-amber-700 dark:text-amber-400"}>
+                      {isPreviousSettled ? "Settled (PKR 0.00)" : formatMoney(previousRemaining)}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    {relevantPreviousInvoices.map((prev) => {
+                      const isSettled = money(prev.remaining).lte(0);
+                      const paidWithThis = money(prev.amountPaidWithThisInvoice || 0);
+
+                      let detailText: string | null = null;
+                      let detailClass = "text-[11px] text-muted-foreground";
+
+                      if (paidWithThis.gt(0)) {
+                        detailClass = "text-[11px] font-medium text-primary";
+                        if (isSettled) {
+                          detailText = `\u2022 Fully Settled: ${formatMoney(paidWithThis)} paid with this invoice`;
+                        } else {
+                          detailText = `\u2022 Partial Payment: ${formatMoney(paidWithThis)} paid with this invoice (Remaining Due: ${formatMoney(prev.remaining)})`;
+                        }
+                      } else if (prev.isPaidWithThisInvoice) {
+                        detailClass = "text-[11px] font-medium text-primary";
+                        detailText = "\u2022 Paid together with this invoice";
+                      } else if (isSettled) {
+                        detailClass = "text-[11px] text-emerald-700 dark:text-emerald-400";
+                        const totalPart = prev.total ? ` of ${formatMoney(prev.total)}` : "";
+                        detailText = `\u2022 Settled earlier (Paid ${formatMoney(prev.paid)}${totalPart})`;
+                      } else if (Number(prev.paid) > 0) {
+                        const totalPart = prev.total ? ` of ${formatMoney(prev.total)}` : "";
+                        detailText = `\u2022 Paid ${formatMoney(prev.paid)}${totalPart} (Remaining: ${formatMoney(prev.remaining)})`;
+                      }
+
+                      return (
+                        <div key={prev.id} className="rounded-md border bg-muted/20 p-2.5 text-xs space-y-1">
+                          <div className="flex justify-between items-center font-medium">
+                            <span className="text-foreground">
+                              {prev.invoiceNumber} <span className="text-muted-foreground font-normal">({prev.invoiceDate})</span>
+                            </span>
+                            <span className={isSettled ? "text-emerald-700 dark:text-emerald-400 font-semibold" : "text-amber-700 dark:text-amber-400 font-semibold"}>
+                              {isSettled ? "Settled (0.00)" : `Due: ${formatMoney(prev.remaining)}`}
+                            </span>
+                          </div>
+                          {detailText ? (
+                            <p className={detailClass}>
+                              {detailText}
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
             </CardContent>
           </Card>
         </div>

@@ -7,7 +7,7 @@ export async function getDashboardSummary() {
     await db.execute<{ total_invoiced: string; total_paid: string }>(sql`
       SELECT
         COALESCE(SUM(i.current_invoice_total), 0) AS total_invoiced,
-        COALESCE((SELECT SUM(amount) FROM payments), 0) AS total_paid
+        COALESCE((SELECT SUM(p.amount) FROM payments p JOIN invoices inv ON inv.id = p.invoice_id WHERE inv.status != 'CANCELLED'), 0) AS total_paid
       FROM invoices i
       WHERE i.status != 'CANCELLED'
     `)
@@ -76,7 +76,7 @@ export async function getDashboardSummary() {
         SELECT customer_id, SUM(current_invoice_total) AS total FROM invoices WHERE status != 'CANCELLED' GROUP BY customer_id
       ) inv ON inv.customer_id = c.id
       LEFT JOIN (
-        SELECT i.customer_id, SUM(p.amount) AS total FROM payments p JOIN invoices i ON i.id = p.invoice_id GROUP BY i.customer_id
+        SELECT i.customer_id, SUM(p.amount) AS total FROM payments p JOIN invoices i ON i.id = p.invoice_id WHERE i.status != 'CANCELLED' GROUP BY i.customer_id
       ) pay ON pay.customer_id = c.id
       WHERE (COALESCE(inv.total, 0) - COALESCE(pay.total, 0)) > 0
       ORDER BY outstanding DESC

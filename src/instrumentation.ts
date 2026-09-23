@@ -8,10 +8,14 @@ export async function onRequestError(
   request: { path: string; method: string },
   context: { routerKind: string; routePath: string; routeType: string }
 ) {
-  const { logError } = await import("@/lib/log");
-  await logError(error, {
-    path: request.path,
-    method: request.method,
-    routeType: context.routeType,
-  });
+  // log.ts uses fs/promises and process.cwd() which are Node.js-only.
+  // Guard against Edge runtime to prevent Edge bundle warnings.
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { logError } = await import("@/lib/log");
+    await logError(error, {
+      path: request.path,
+      method: request.method,
+      routeType: context.routeType,
+    });
+  }
 }
