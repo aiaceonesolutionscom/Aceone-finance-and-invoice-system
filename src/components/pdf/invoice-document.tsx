@@ -909,23 +909,25 @@ export function InvoiceDocument({
             {/* Contact row — single line with flex-row so URL never wraps mid-word */}
             <View style={{ flexDirection: "row", flexWrap: "nowrap", alignItems: "center", marginBottom: 3.5 }}>
               {company.phone ? (
-                <>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Text style={[styles.footerLabel, { fontSize: 8.5 }]}>Phone: </Text>
                   <Text style={[styles.footerValue, { fontSize: 8.5 }]}>{company.phone}</Text>
-                  <Text style={[styles.footerSep, { fontSize: 8.5 }]}>   •   </Text>
-                </>
+                  <Text style={{ color: "#FFFFFF", opacity: 0.35, fontSize: 8.5, marginHorizontal: 9 }}>|</Text>
+                </View>
               ) : null}
               {company.email ? (
-                <>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Text style={[styles.footerLabel, { fontSize: 8.5 }]}>Email: </Text>
                   <Text style={[styles.footerValue, { fontSize: 8.5 }]}>{company.email}</Text>
-                  <Text style={[styles.footerSep, { fontSize: 8.5 }]}>   •   </Text>
-                </>
+                  <Text style={{ color: "#FFFFFF", opacity: 0.35, fontSize: 8.5, marginHorizontal: 9 }}>|</Text>
+                </View>
               ) : null}
-              <Text style={[styles.footerLabel, { fontSize: 8.5 }]}>Web: </Text>
-              <Text style={[styles.footerValue, { fontSize: 8.5 }]} hyphenationCallback={(word) => [word]}>
-                {company.website || "https://aceonesolutions.com"}
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={[styles.footerLabel, { fontSize: 8.5 }]}>Web: </Text>
+                <Text style={[styles.footerValue, { fontSize: 8.5 }]} hyphenationCallback={(word) => [word]}>
+                  {company.website || "https://aceonesolutions.com"}
+                </Text>
+              </View>
             </View>
             {company.address ? (
               <Text style={styles.footerAddress}>{company.address}</Text>
