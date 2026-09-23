@@ -60,6 +60,7 @@ export async function updateInvoiceSettings(input: InvoiceSettingsInput) {
     .where(eq(settings.id, 1));
   await logAudit(db, { action: "settings.changed", entity: "settings", details: { section: "invoice" } });
   revalidatePath("/settings");
+  revalidatePath("/invoices");
 }
 
 export async function uploadLogo(formData: FormData) {
@@ -95,6 +96,7 @@ export async function createInvoiceText(input: InvoiceTextInput) {
   const [created] = await db.insert(invoiceTexts).values(parsed).returning();
   await logAudit(db, { action: "invoice_text.created", entity: "invoice_text", entityId: created.id });
   revalidatePath("/settings");
+  revalidatePath("/invoices");
   return created;
 }
 
@@ -107,6 +109,7 @@ export async function updateInvoiceText(id: number, input: InvoiceTextInput) {
     .returning();
   await logAudit(db, { action: "invoice_text.updated", entity: "invoice_text", entityId: id });
   revalidatePath("/settings");
+  revalidatePath("/invoices");
   return updated;
 }
 
@@ -114,4 +117,5 @@ export async function deleteInvoiceText(id: number) {
   await db.delete(invoiceTexts).where(eq(invoiceTexts.id, id));
   await logAudit(db, { action: "invoice_text.deleted", entity: "invoice_text", entityId: id });
   revalidatePath("/settings");
+  revalidatePath("/invoices");
 }

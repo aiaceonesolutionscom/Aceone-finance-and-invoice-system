@@ -100,13 +100,14 @@ export async function getCustomerStatement(customerId: number, filter: ReportDat
     WHERE ${sql.join(invoiceConditions, sql` AND `)}
   `);
 
-  const paymentConditions = [sql`customer_id = ${customerId}`];
-  if (filter.dateFrom) paymentConditions.push(sql`payment_date >= ${filter.dateFrom}`);
-  if (filter.dateTo) paymentConditions.push(sql`payment_date <= ${filter.dateTo}`);
+  const paymentConditions = [sql`p.customer_id = ${customerId}`, sql`inv.status != 'CANCELLED'`];
+  if (filter.dateFrom) paymentConditions.push(sql`p.payment_date >= ${filter.dateFrom}`);
+  if (filter.dateTo) paymentConditions.push(sql`p.payment_date <= ${filter.dateTo}`);
 
   const paymentRows = await db.execute<{ date: string; amount: string; payment_method: string; created_at: string }>(sql`
-    SELECT payment_date AS date, amount, payment_method, created_at
-    FROM payments
+    SELECT p.payment_date AS date, p.amount, p.payment_method, p.created_at
+    FROM payments p
+    JOIN invoices inv ON inv.id = p.invoice_id
     WHERE ${sql.join(paymentConditions, sql` AND `)}
   `);
 
@@ -149,13 +150,15 @@ export async function getProfitLoss(filter: ReportDateFilter = {}) {
     )
   ).rows;
 
-  const paymentConditions = [];
-  if (filter.dateFrom) paymentConditions.push(sql`payment_date >= ${filter.dateFrom}`);
-  if (filter.dateTo) paymentConditions.push(sql`payment_date <= ${filter.dateTo}`);
-  const paymentWhere = paymentConditions.length ? sql`WHERE ${sql.join(paymentConditions, sql` AND `)}` : sql``;
+  const paymentConditions = [sql`inv.status != 'CANCELLED'`];
+  if (filter.dateFrom) paymentConditions.push(sql`p.payment_date >= ${filter.dateFrom}`);
+  if (filter.dateTo) paymentConditions.push(sql`p.payment_date <= ${filter.dateTo}`);
+  const paymentWhere = sql`WHERE ${sql.join(paymentConditions, sql` AND `)}`;
 
   const [{ total_received }] = (
-    await db.execute<{ total_received: string }>(sql`SELECT COALESCE(SUM(amount), 0) AS total_received FROM payments ${paymentWhere}`)
+    await db.execute<{ total_received: string }>(
+      sql`SELECT COALESCE(SUM(p.amount), 0) AS total_received FROM payments p JOIN invoices inv ON inv.id = p.invoice_id ${paymentWhere}`
+    )
   ).rows;
 
   const expenseConditions = [];
@@ -199,14 +202,14 @@ export async function getBusinessOverview(filter: ReportDateFilter = {}) {
     `)
   ).rows;
 
-  const paymentConditions = [];
-  if (filter.dateFrom) paymentConditions.push(sql`payment_date >= ${filter.dateFrom}`);
-  if (filter.dateTo) paymentConditions.push(sql`payment_date <= ${filter.dateTo}`);
-  const paymentWhere = paymentConditions.length ? sql`WHERE ${sql.join(paymentConditions, sql` AND `)}` : sql``;
+  const paymentConditions = [sql`inv.status != 'CANCELLED'`];
+  if (filter.dateFrom) paymentConditions.push(sql`p.payment_date >= ${filter.dateFrom}`);
+  if (filter.dateTo) paymentConditions.push(sql`p.payment_date <= ${filter.dateTo}`);
+  const paymentWhere = sql`WHERE ${sql.join(paymentConditions, sql` AND `)}`;
 
   const methodBreakdown = (
     await db.execute<{ payment_method: string; total: string }>(sql`
-      SELECT payment_method, SUM(amount) AS total FROM payments ${paymentWhere} GROUP BY payment_method ORDER BY total DESC
+      SELECT p.payment_method, SUM(p.amount) AS total FROM payments p JOIN invoices inv ON inv.id = p.invoice_id ${paymentWhere} GROUP BY p.payment_method ORDER BY total DESC
     `)
   ).rows.map((r) => ({ method: r.payment_method, total: money(r.total) }));
 

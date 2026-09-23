@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { money } from "@/lib/money";
 import { getInvoiceById } from "@/lib/db/queries/invoices";
-import { getSettings } from "@/lib/db/queries/settings";
+import { getSettings, listEnabledInvoiceTexts } from "@/lib/db/queries/settings";
 import { InvoiceDocument } from "@/components/pdf/invoice-document";
 import { logError } from "@/lib/log";
 
@@ -24,10 +24,25 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
   }
 
-  const settingsRow = await getSettings().catch(() => null);
+  const [settingsRow, activeInvoiceTexts] = await Promise.all([
+    getSettings().catch(() => null),
+    listEnabledInvoiceTexts().catch(() => null),
+  ]);
 
   const invoiceData = {
     ...data.invoice,
+    paymentTermsSnapshot:
+      settingsRow?.defaultPaymentTerms ||
+      data.invoice.paymentTermsSnapshot ||
+      "On Receipt",
+    footerSnapshot:
+      settingsRow?.footerText ||
+      data.invoice.footerSnapshot ||
+      null,
+    additionalTextSnapshot:
+      activeInvoiceTexts !== null
+        ? activeInvoiceTexts
+        : (data.invoice.additionalTextSnapshot ?? []),
     companySnapshot: {
       ...data.invoice.companySnapshot,
       ...settingsRow,
