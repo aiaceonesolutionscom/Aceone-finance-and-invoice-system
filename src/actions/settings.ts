@@ -38,6 +38,7 @@ export async function updateCompanySettings(input: CompanySettingsInput) {
     .where(eq(settings.id, 1));
   await logAudit(db, { action: "settings.changed", entity: "settings", details: { section: "company" } });
   revalidatePath("/settings");
+  revalidatePath("/invoices");
 }
 
 export async function updateInvoiceSettings(input: InvoiceSettingsInput) {

@@ -29,15 +29,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const invoiceData = {
     ...data.invoice,
     companySnapshot: {
-      ...settingsRow,
       ...data.invoice.companySnapshot,
-      companyName: data.invoice.companySnapshot?.companyName || settingsRow?.companyName || "AceOne Creative Agency",
-      phone: data.invoice.companySnapshot?.phone || settingsRow?.phone || null,
-      email: data.invoice.companySnapshot?.email || settingsRow?.email || null,
-      website: data.invoice.companySnapshot?.website || settingsRow?.website || null,
-      address: data.invoice.companySnapshot?.address || settingsRow?.address || null,
-      companyTaxNumber: data.invoice.companySnapshot?.companyTaxNumber || settingsRow?.companyTaxNumber || null,
-      bankDetails: data.invoice.companySnapshot?.bankDetails || settingsRow?.bankDetails || null,
+      ...settingsRow,
+      companyName: settingsRow?.companyName || data.invoice.companySnapshot?.companyName || "AceOne Creative Agency",
+      phone: settingsRow?.phone || data.invoice.companySnapshot?.phone || null,
+      email: settingsRow?.email || data.invoice.companySnapshot?.email || null,
+      website: settingsRow?.website || data.invoice.companySnapshot?.website || null,
+      address: settingsRow?.address || data.invoice.companySnapshot?.address || null,
+      companyTaxNumber: settingsRow?.companyTaxNumber || data.invoice.companySnapshot?.companyTaxNumber || null,
+      bankDetails: settingsRow?.bankDetails || data.invoice.companySnapshot?.bankDetails || null,
     },
   };
 
@@ -78,10 +78,18 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       })
     );
 
+    // Universal Date-Stamped Invoice PDF Filename (e.g. INV-2026-09-23-52.pdf)
+    // Allows chronological sorting and instant date identification
+    const prefixMatch = data.invoice.invoiceNumber.match(/^([A-Za-z]+)-?(.*)$/);
+    const prefix = prefixMatch ? prefixMatch[1].toUpperCase() : "INV";
+    const numPart = prefixMatch && prefixMatch[2] ? prefixMatch[2] : data.invoice.invoiceNumber;
+    const datePart = data.invoice.invoiceDate || new Date().toISOString().slice(0, 10);
+    const pdfFilename = `${prefix}-${datePart}-${numPart}.pdf`;
+
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${data.invoice.invoiceNumber}.pdf"`,
+        "Content-Disposition": `inline; filename="${pdfFilename}"`,
       },
     });
   } catch (error) {
