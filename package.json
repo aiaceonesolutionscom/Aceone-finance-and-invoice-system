@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3005",
     "build": "next build",
+    "build:cpanel": "next build --webpack",
+    "postbuild": "node -e \"const fs = require('fs'); if (fs.existsSync('.next/static')) fs.cpSync('.next/static', '.next/standalone/.next/static', {recursive:true}); if (fs.existsSync('public')) fs.cpSync('public', '.next/standalone/public', {recursive:true});\"",
     "start": "next start -p 3005",
     "lint": "eslint",
     "check-db": "tsx scripts/check-db.ts",
