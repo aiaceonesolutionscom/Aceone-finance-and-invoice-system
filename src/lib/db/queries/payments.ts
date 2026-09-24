@@ -2,6 +2,13 @@ import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { money } from "@/lib/money";
 
+export type PaymentSortOption =
+  | "latest"
+  | "oldest"
+  | "amount_desc"
+  | "amount_asc"
+  | "customer_asc";
+
 export type PaymentListFilter = {
   search?: string;
   customerId?: number;
@@ -10,6 +17,7 @@ export type PaymentListFilter = {
   dateTo?: string;
   limit?: number;
   offset?: number;
+  sort?: PaymentSortOption | string;
 };
 
 function buildConditions(filter: PaymentListFilter) {
@@ -40,6 +48,17 @@ export async function listAllPayments(filter: PaymentListFilter | string = {}) {
   const whereClause = conditions.length ? sql`WHERE ${sql.join(conditions, sql` AND `)}` : sql``;
   const limitClause = normalized.limit !== undefined ? sql`LIMIT ${normalized.limit} OFFSET ${normalized.offset ?? 0}` : sql``;
 
+  let orderByClause = sql`ORDER BY p.payment_date DESC, p.payment_time DESC NULLS LAST, p.created_at DESC, p.id DESC`;
+  if (normalized.sort === "oldest") {
+    orderByClause = sql`ORDER BY p.payment_date ASC, p.payment_time ASC NULLS LAST, p.created_at ASC, p.id ASC`;
+  } else if (normalized.sort === "amount_desc") {
+    orderByClause = sql`ORDER BY p.amount DESC, p.payment_date DESC, p.id DESC`;
+  } else if (normalized.sort === "amount_asc") {
+    orderByClause = sql`ORDER BY p.amount ASC, p.payment_date DESC, p.id DESC`;
+  } else if (normalized.sort === "customer_asc") {
+    orderByClause = sql`ORDER BY c.customer_name ASC, p.payment_date DESC, p.id DESC`;
+  }
+
   const rows = await db.execute<{
     id: number;
     invoice_id: number;
@@ -62,7 +81,7 @@ export async function listAllPayments(filter: PaymentListFilter | string = {}) {
     JOIN invoices i ON i.id = p.invoice_id
     JOIN customers c ON c.id = p.customer_id
     ${whereClause}
-    ORDER BY p.payment_date DESC, p.payment_time DESC NULLS LAST, p.id DESC
+    ${orderByClause}
     ${limitClause}
   `);
 

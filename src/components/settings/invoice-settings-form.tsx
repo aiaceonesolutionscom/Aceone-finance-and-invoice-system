@@ -153,20 +153,6 @@ export function InvoiceSettingsForm({ defaultValues }: { defaultValues: InvoiceS
           <Label htmlFor="show-previous-outstanding">Show Previous Outstanding on generated invoice PDF</Label>
         </div>
 
-        <FormField
-          control={form.control}
-          name="footerText"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Footer Text</FormLabel>
-              <FormControl>
-                <Textarea rows={2} placeholder="e.g. Thank you for your business!" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <Button type="submit" disabled={isPending}>
           Save Invoice Settings
         </Button>

@@ -42,7 +42,7 @@ export default async function ExpensesPage({
 
   return (
     <div>
-      <PageHeader title="Expenses" description="Track business expenses by name, category, and amount." />
+      <PageHeader title="Expenses" description="Track business expenses by details, category, and amount." />
 
       <div className="space-y-6">
         <ExpenseForm categories={categories} />
@@ -50,7 +50,7 @@ export default async function ExpensesPage({
         <SearchBox
           action="/expenses"
           defaultValue={q}
-          placeholder="Search expenses by name..."
+          placeholder="Search expenses by details..."
           extraHiddenParams={{ from: dateFrom, to: dateTo, categoryId }}
         />
         <DateRangeFilter basePath="/expenses" dateFrom={dateFrom} dateTo={dateTo} preset={preset} extraParams={{ q, categoryId }} />

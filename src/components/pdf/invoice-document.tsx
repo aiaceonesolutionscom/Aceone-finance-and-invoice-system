@@ -894,15 +894,6 @@ export function InvoiceDocument({
           </View>
         ) : null}
 
-        {/* Footer text from Settings if configured */}
-        {invoice.footerSnapshot ? (
-          <View style={{ marginTop: 2, marginBottom: 6, alignItems: "center" }}>
-            <Text style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic", textAlign: "center" }}>
-              {invoice.footerSnapshot}
-            </Text>
-          </View>
-        ) : null}
-
         {/* Dark Footer Band with Burgundy & Crimson Theme */}
         <View style={styles.footerBand} fixed>
           <View style={styles.footerColLeft}>

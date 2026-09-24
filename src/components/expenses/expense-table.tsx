@@ -64,7 +64,7 @@ function EditExpenseDialog({ expense, categories }: { expense: Expense; categori
           <DialogTitle>Edit Expense</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Expense name" />
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Expense details" />
           <CategoryCombobox
             categories={categories}
             categoryId={categoryId}
@@ -158,7 +158,7 @@ export function ExpenseTable({ expenses, categories }: { expenses: Expense[]; ca
           <TableRow>
             <TableHead>Date</TableHead>
             <TableHead>Time</TableHead>
-            <TableHead>Expense Name</TableHead>
+            <TableHead>Expense Details</TableHead>
             <TableHead>Category</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-20" />

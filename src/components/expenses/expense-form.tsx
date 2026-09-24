@@ -54,9 +54,9 @@ export function ExpenseForm({ categories }: { categories: CategoryOption[] }) {
           name="expenseName"
           render={({ field }) => (
             <FormItem className="flex-1 basis-48">
-              <FormLabel className="sr-only">Expense Name</FormLabel>
+              <FormLabel className="sr-only">Expense Details</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. Salary - Designer" {...field} />
+                <Input placeholder="Expense details (e.g. Office Rent, Software)..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

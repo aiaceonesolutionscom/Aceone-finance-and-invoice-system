@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { PageHeader } from "@/components/layout/header";
 import { SearchBox } from "@/components/layout/search-box";
 import { DateRangeFilter } from "@/components/layout/date-range-filter";
 import { Pagination } from "@/components/layout/pagination";
+import { PaymentSortSelect } from "@/components/payments/payment-sort-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -24,19 +25,30 @@ const methodLabels: Record<string, string> = {
 export default async function PaymentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; from?: string; to?: string; preset?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; from?: string; to?: string; preset?: string; page?: string; sort?: string }>;
 }) {
-  const { q, from, to, preset, page } = await searchParams;
+  const { q, from, to, preset, page, sort } = await searchParams;
   const presetRange = preset ? getPresetRange(preset) : null;
   const dateFrom = presetRange?.from ?? from;
   const dateTo = presetRange?.to ?? to;
   const { page: currentPage, limit, offset } = paginationParams(page);
 
-  const filter = { search: q, dateFrom, dateTo };
+  const filter = { search: q, dateFrom, dateTo, sort };
   const [{ rows: payments, total: rowCount }, total] = await Promise.all([
     listAllPayments({ ...filter, limit, offset }),
     getPaymentsGrandTotal(filter),
   ]);
+
+  function buildSortHref(targetSort: string) {
+    const search = new URLSearchParams();
+    if (q) search.set("q", q);
+    if (dateFrom) search.set("from", dateFrom);
+    if (dateTo) search.set("to", dateTo);
+    if (preset) search.set("preset", preset);
+    if (targetSort && targetSort !== "latest") search.set("sort", targetSort);
+    const qs = search.toString();
+    return qs ? `/payments?${qs}` : "/payments";
+  }
 
   return (
     <div>
@@ -46,9 +58,13 @@ export default async function PaymentsPage({
         action="/payments"
         defaultValue={q}
         placeholder="Search by customer, invoice, or reference..."
-        extraHiddenParams={{ from: dateFrom, to: dateTo }}
+        extraHiddenParams={{ from: dateFrom, to: dateTo, sort }}
       />
-      <DateRangeFilter basePath="/payments" dateFrom={dateFrom} dateTo={dateTo} preset={preset} extraParams={{ q }} />
+
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+        <DateRangeFilter basePath="/payments" dateFrom={dateFrom} dateTo={dateTo} preset={preset} extraParams={{ q, sort }} />
+        <PaymentSortSelect basePath="/payments" currentSort={sort} extraParams={{ q, from: dateFrom, to: dateTo, preset }} />
+      </div>
 
       <Card className="mb-4 max-w-xs">
         <CardHeader>
@@ -68,11 +84,53 @@ export default async function PaymentsPage({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
+                <TableHead>
+                  <Link
+                    href={buildSortHref(sort === "latest" || !sort ? "oldest" : "latest")}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
+                  >
+                    <span>Date</span>
+                    {sort === "oldest" ? (
+                      <ArrowUp className="size-3.5 text-primary" />
+                    ) : sort === "latest" || !sort ? (
+                      <ArrowDown className="size-3.5 text-primary" />
+                    ) : (
+                      <ArrowUpDown className="size-3.5 opacity-30 group-hover:opacity-70" />
+                    )}
+                  </Link>
+                </TableHead>
                 <TableHead>Time</TableHead>
-                <TableHead>Customer</TableHead>
+                <TableHead>
+                  <Link
+                    href={buildSortHref(sort === "customer_asc" ? "latest" : "customer_asc")}
+                    className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
+                  >
+                    <span>Customer</span>
+                    {sort === "customer_asc" ? (
+                      <ArrowUp className="size-3.5 text-primary" />
+                    ) : (
+                      <ArrowUpDown className="size-3.5 opacity-30 group-hover:opacity-70" />
+                    )}
+                  </Link>
+                </TableHead>
                 <TableHead>Invoice</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">
+                  <div className="flex justify-end">
+                    <Link
+                      href={buildSortHref(sort === "amount_desc" ? "amount_asc" : "amount_desc")}
+                      className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors group"
+                    >
+                      <span>Amount</span>
+                      {sort === "amount_desc" ? (
+                        <ArrowDown className="size-3.5 text-primary" />
+                      ) : sort === "amount_asc" ? (
+                        <ArrowUp className="size-3.5 text-primary" />
+                      ) : (
+                        <ArrowUpDown className="size-3.5 opacity-30 group-hover:opacity-70" />
+                      )}
+                    </Link>
+                  </div>
+                </TableHead>
                 <TableHead>Method</TableHead>
                 <TableHead>Reference</TableHead>
                 <TableHead className="w-10" />
@@ -113,7 +171,7 @@ export default async function PaymentsPage({
         </div>
       )}
 
-      <Pagination basePath="/payments" currentPage={currentPage} totalPages={computeTotalPages(rowCount)} extraParams={{ q, from: dateFrom, to: dateTo }} />
+      <Pagination basePath="/payments" currentPage={currentPage} totalPages={computeTotalPages(rowCount)} extraParams={{ q, from: dateFrom, to: dateTo, sort }} />
     </div>
   );
 }
