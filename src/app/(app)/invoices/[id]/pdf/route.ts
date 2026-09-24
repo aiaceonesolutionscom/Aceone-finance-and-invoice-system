@@ -32,27 +32,22 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const invoiceData = {
     ...data.invoice,
     paymentTermsSnapshot:
-      settingsRow?.defaultPaymentTerms ||
-      data.invoice.paymentTermsSnapshot ||
+      settingsRow?.defaultPaymentTerms ??
+      data.invoice.paymentTermsSnapshot ??
       "On Receipt",
-    footerSnapshot:
-      settingsRow?.footerText ||
-      data.invoice.footerSnapshot ||
-      null,
     additionalTextSnapshot:
       activeInvoiceTexts !== null
         ? activeInvoiceTexts
         : (data.invoice.additionalTextSnapshot ?? []),
     companySnapshot: {
       ...data.invoice.companySnapshot,
-      ...settingsRow,
-      companyName: settingsRow?.companyName || data.invoice.companySnapshot?.companyName || "AceOne Creative Agency",
-      phone: settingsRow?.phone || data.invoice.companySnapshot?.phone || null,
-      email: settingsRow?.email || data.invoice.companySnapshot?.email || null,
-      website: settingsRow?.website || data.invoice.companySnapshot?.website || null,
-      address: settingsRow?.address || data.invoice.companySnapshot?.address || null,
-      companyTaxNumber: settingsRow?.companyTaxNumber || data.invoice.companySnapshot?.companyTaxNumber || null,
-      bankDetails: settingsRow?.bankDetails || data.invoice.companySnapshot?.bankDetails || null,
+      companyName: settingsRow?.companyName ?? data.invoice.companySnapshot?.companyName ?? "AceOne Creative Agency",
+      phone: settingsRow !== null ? settingsRow.phone : data.invoice.companySnapshot?.phone,
+      email: settingsRow !== null ? settingsRow.email : data.invoice.companySnapshot?.email,
+      website: settingsRow !== null ? settingsRow.website : data.invoice.companySnapshot?.website,
+      address: settingsRow !== null ? settingsRow.address : data.invoice.companySnapshot?.address,
+      companyTaxNumber: settingsRow !== null ? settingsRow.companyTaxNumber : data.invoice.companySnapshot?.companyTaxNumber,
+      bankDetails: settingsRow !== null ? settingsRow.bankDetails : data.invoice.companySnapshot?.bankDetails,
     },
   };
 
@@ -74,10 +69,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
         Boolean(inv.isContributedToThisInvoice && money(inv.remaining).lte(0)),
     }));
 
+  let customLogoPath: string | null = null;
+  if (settingsRow?.logo) {
+    const cleanLogoPath = settingsRow.logo.replace(/^\/+/, "");
+    const fullCustom = path.join(process.cwd(), "public", cleanLogoPath);
+    if (existsSync(fullCustom)) {
+      customLogoPath = pathToFileURL(fullCustom).href;
+    }
+  }
+
   const redLogo = path.join(process.cwd(), "public", "aceone-logo.png");
   const whiteLogo = path.join(process.cwd(), "public", "logo-white.png");
 
-  const logoAbsolutePath = existsSync(redLogo) ? pathToFileURL(redLogo).href : null;
+  const logoAbsolutePath = customLogoPath || (existsSync(redLogo) ? pathToFileURL(redLogo).href : null);
   const whiteLogoAbsolutePath = existsSync(whiteLogo) ? pathToFileURL(whiteLogo).href : null;
 
   try {

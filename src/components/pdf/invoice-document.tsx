@@ -928,7 +928,7 @@ export function InvoiceDocument({
             <Image src={whiteLogoAbsolutePath} style={{ width: 145, height: 38, objectFit: "contain" }} />
           ) : (
             <Text style={{ color: "#FFFFFF", fontSize: 9.5, fontWeight: 700, letterSpacing: 1 }}>
-              ACEONE CREATIVE AGENCY
+              {company.companyName ? company.companyName.toUpperCase() : "ACEONE CREATIVE AGENCY"}
             </Text>
           )}
         </View>
