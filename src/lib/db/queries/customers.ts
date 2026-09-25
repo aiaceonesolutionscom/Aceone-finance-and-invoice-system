@@ -45,7 +45,7 @@ export async function listCustomers(search?: string, pagination?: { limit: numbe
            OR c.phone ILIKE ${"%" + term + "%"}`
         : sql``
     }
-    ORDER BY c.customer_name ASC
+    ORDER BY c.id DESC
     ${limitClause}
   `);
 
