@@ -47,9 +47,9 @@ export function CustomerForm({
           toast.success("Customer updated");
           router.push(`/customers/${customerId}`);
         } else {
-          const created = await createCustomer(values);
+          await createCustomer(values);
           toast.success("Customer created");
-          router.push(`/customers/${created.id}`);
+          router.push("/customers");
         }
         router.refresh();
       } catch (error) {
