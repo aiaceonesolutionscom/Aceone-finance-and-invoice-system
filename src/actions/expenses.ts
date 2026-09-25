@@ -7,6 +7,7 @@ import { expenses } from "@/lib/db/schema";
 import { expenseSchema, type ExpenseInput } from "@/lib/validation/expense";
 import { upsertExpenseCategoryByName } from "@/lib/db/queries/expense-categories";
 import { logAudit } from "@/lib/audit";
+import { requireAuth } from "@/lib/auth";
 
 function nowDateTime() {
   const now = new Date();
@@ -22,6 +23,7 @@ async function resolveCategoryId(tx: Tx, parsed: ExpenseInput) {
 }
 
 export async function createExpense(input: ExpenseInput) {
+  const user = await requireAuth();
   const parsed = expenseSchema.parse(input);
   const { expenseDate, expenseTime } = nowDateTime();
 
@@ -29,7 +31,14 @@ export async function createExpense(input: ExpenseInput) {
     const categoryId = await resolveCategoryId(tx, parsed);
     const [row] = await tx
       .insert(expenses)
-      .values({ expenseName: parsed.expenseName, amount: parsed.amount, expenseDate, expenseTime, categoryId })
+      .values({
+        expenseName: parsed.expenseName,
+        amount: parsed.amount,
+        expenseDate,
+        expenseTime,
+        categoryId,
+        createdBy: user.email,
+      })
       .returning();
 
     await logAudit(tx, { action: "expense.created", entity: "expense", entityId: row.id, details: { expenseName: row.expenseName, amount: row.amount } });
@@ -42,6 +51,7 @@ export async function createExpense(input: ExpenseInput) {
 }
 
 export async function updateExpense(id: number, input: ExpenseInput) {
+  await requireAuth();
   const parsed = expenseSchema.parse(input);
 
   const updated = await db.transaction(async (tx) => {
@@ -62,8 +72,10 @@ export async function updateExpense(id: number, input: ExpenseInput) {
 }
 
 export async function deleteExpense(id: number) {
+  await requireAuth();
   await db.delete(expenses).where(eq(expenses.id, id));
   await logAudit(db, { action: "expense.deleted", entity: "expense", entityId: id });
   revalidatePath("/expenses");
   revalidatePath("/dashboard");
 }
+

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { customers } from "@/lib/db/schema";
 import { customerSchema, type CustomerInput } from "@/lib/validation/customer";
 import { logAudit } from "@/lib/audit";
+import { requireAuth } from "@/lib/auth";
 
 function clean(input: CustomerInput) {
   return {
@@ -18,6 +19,7 @@ function clean(input: CustomerInput) {
 }
 
 export async function createCustomer(input: CustomerInput) {
+  await requireAuth();
   const parsed = customerSchema.parse(input);
   const [created] = await db.insert(customers).values(clean(parsed)).returning();
   await logAudit(db, { action: "customer.created", entity: "customer", entityId: created.id, details: { customerName: created.customerName } });
@@ -26,6 +28,7 @@ export async function createCustomer(input: CustomerInput) {
 }
 
 export async function updateCustomer(id: number, input: CustomerInput) {
+  await requireAuth();
   const parsed = customerSchema.parse(input);
   const [updated] = await db
     .update(customers)
@@ -39,6 +42,7 @@ export async function updateCustomer(id: number, input: CustomerInput) {
 }
 
 export async function deleteCustomer(id: number) {
+  await requireAuth();
   try {
     await db.delete(customers).where(eq(customers.id, id));
   } catch (error) {
@@ -52,3 +56,4 @@ export async function deleteCustomer(id: number) {
   await logAudit(db, { action: "customer.deleted", entity: "customer", entityId: id });
   revalidatePath("/customers");
 }
+

@@ -9,13 +9,15 @@ import { paymentSchema, bulkPaymentSchema, type PaymentInput, type BulkPaymentIn
 import { recalcInvoiceStatus } from "@/lib/invoice-status";
 import { money, toDbString } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
-import { getSessionUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 
 export async function createPayment(input: PaymentInput) {
+  const user = await requireAuth();
   const parsed = paymentSchema.parse(input);
-  const user = await getSessionUser().catch(() => null);
 
   const result = await db.transaction(async (tx) => {
+
+
     const [invoice] = await tx
       .select()
       .from(invoices)
@@ -81,13 +83,15 @@ export async function createPayment(input: PaymentInput) {
  * (never merged), so history for the old invoice stays accurate.
  */
 export async function createBulkPayment(input: BulkPaymentInput) {
+  const user = await requireAuth();
   const parsed = bulkPaymentSchema.parse(input);
-  const user = await getSessionUser().catch(() => null);
 
   const nonZeroEntries = parsed.entries.filter((e) => money(e.amount).gt(0));
   // Only tag payments with a shared batch when the payment actually spans
   // more than one invoice — a normal single-invoice payment needs no link.
   const batchId = nonZeroEntries.length > 1 ? randomUUID() : null;
+
+
 
   const results = await db.transaction(async (tx) => {
     const entryResults: { invoiceId: number; status: string; remaining: string }[] = [];
@@ -156,7 +160,9 @@ export async function createBulkPayment(input: BulkPaymentInput) {
 }
 
 export async function deletePayment(paymentId: number) {
+  await requireAuth();
   const invoiceId = await db.transaction(async (tx) => {
+
     const [payment] = await tx
       .select()
       .from(payments)

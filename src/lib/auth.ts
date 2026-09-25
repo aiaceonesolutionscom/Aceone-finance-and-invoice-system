@@ -57,3 +57,12 @@ export async function getSessionUser() {
   const [user] = await db.select().from(appUser).where(eq(appUser.id, 1)).limit(1);
   return user ?? null;
 }
+
+export async function requireAuth() {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error("Unauthorized. Please log in.");
+  }
+  return user;
+}
+

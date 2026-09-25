@@ -13,8 +13,10 @@ import { getSettings, listEnabledInvoiceTexts } from "@/lib/db/queries/settings"
 import { recalcInvoiceStatus } from "@/lib/invoice-status";
 import { money, sumMoney, toDbString } from "@/lib/money";
 import { logAudit } from "@/lib/audit";
+import { requireAuth } from "@/lib/auth";
 
 async function resolveLines(tx: Tx, lines: InvoiceInput["lines"]) {
+
   const resolved: { serviceId: number; serviceName: string; rate: string }[] = [];
 
   for (const line of lines) {
@@ -64,7 +66,9 @@ export async function createInvoice(
   input: InvoiceInput,
   options?: { openPaymentAfter?: boolean }
 ) {
+  await requireAuth();
   const parsed = invoiceSchema.parse(input);
+
 
   const invoiceId = await db.transaction(async (tx) => {
     const [customer] = await tx
@@ -149,6 +153,7 @@ export async function createInvoice(
 }
 
 export async function updateInvoice(id: number, input: InvoiceInput) {
+  await requireAuth();
   const parsed = invoiceSchema.parse(input);
 
   // Editing an invoice that already has payments is allowed (e.g. to correct
@@ -233,6 +238,7 @@ export async function updateInvoice(id: number, input: InvoiceInput) {
 }
 
 export async function cancelInvoice(id: number) {
+  await requireAuth();
   await db.update(invoices).set({ status: "CANCELLED", updatedAt: new Date() }).where(eq(invoices.id, id));
   await logAudit(db, { action: "invoice.cancelled", entity: "invoice", entityId: id });
   revalidatePath("/invoices");
@@ -240,6 +246,7 @@ export async function cancelInvoice(id: number) {
 }
 
 export async function deleteInvoice(id: number) {
+  await requireAuth();
   const customerId = await db.transaction(async (tx) => {
     const [invoice] = await tx.select().from(invoices).where(eq(invoices.id, id)).limit(1);
     if (!invoice) throw new Error("Invoice not found");
@@ -269,6 +276,7 @@ export async function deleteInvoice(id: number) {
 }
 
 export async function previewPreviousOutstanding(customerId: number, excludeInvoiceId?: number) {
+  await requireAuth();
   const result = await getPreviousOutstanding(db, customerId, excludeInvoiceId);
   return {
     previousOutstandingAmount: result.previousOutstandingAmount.toFixed(2),

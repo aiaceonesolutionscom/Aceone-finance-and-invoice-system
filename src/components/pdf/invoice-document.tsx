@@ -1,6 +1,24 @@
-import { Document, Page, Text, View, StyleSheet, Image, Svg, Path, Polygon } from "@react-pdf/renderer";
+import path from "path";
+import { Document, Page, Text, View, StyleSheet, Image, Svg, Path, Font } from "@react-pdf/renderer";
+
 import type { invoices, invoiceItems, payments } from "@/lib/db/schema";
 import { formatMoney, money, sumMoney } from "@/lib/money";
+
+const poppinsRegular = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-Regular.ttf");
+const poppinsMedium = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-Medium.ttf");
+const poppinsSemiBold = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-SemiBold.ttf");
+const poppinsBold = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-Bold.ttf");
+
+Font.register({
+  family: "Poppins",
+  fonts: [
+    { src: poppinsRegular, fontWeight: 400 },
+    { src: poppinsMedium, fontWeight: 500 },
+    { src: poppinsSemiBold, fontWeight: 600 },
+    { src: poppinsBold, fontWeight: 700 },
+  ],
+});
+
 
 // Brand Color Palette (Exact AceOne Logo Identity)
 const BRAND_PRIMARY = "#BE1960"; // AceOne Signature Vibrant Magenta / Ruby (top of logo)
@@ -79,7 +97,7 @@ const styles = StyleSheet.create({
     paddingBottom: 90,
     paddingHorizontal: 36,
     fontSize: 8.5,
-    fontFamily: "Helvetica",
+    fontFamily: "Poppins",
     color: TEXT_DARK,
     backgroundColor: "#FFFFFF",
   },
@@ -90,12 +108,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 20,
   },
-  cornerAccent: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-  },
   logoBox: {
+
     maxWidth: 210,
   },
   logo: {
@@ -226,7 +240,7 @@ const styles = StyleSheet.create({
   },
   tableHeaderText: {
     color: "#FFFFFF",
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: 700,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -255,17 +269,17 @@ const styles = StyleSheet.create({
     flex: 1.5,
     textAlign: "right",
     color: TEXT_MUTED,
-    fontSize: 8,
+    fontSize: 8.8,
   },
   colAmount: {
     flex: 1.5,
     textAlign: "right",
     fontWeight: 700,
     color: TEXT_DARK,
-    fontSize: 8.5,
+    fontSize: 9.5,
   },
   serviceName: {
-    fontSize: 8.5,
+    fontSize: 9,
     fontWeight: 700,
     color: TEXT_DARK,
   },
@@ -276,7 +290,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   totalsBox: {
-    width: 240,
+    width: 250,
   },
   totalsRow: {
     flexDirection: "row",
@@ -285,11 +299,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   totalsLabel: {
-    fontSize: 8,
+    fontSize: 8.5,
     color: TEXT_MUTED,
   },
   totalsValue: {
-    fontSize: 8,
+    fontSize: 9,
     color: TEXT_DARK,
     fontWeight: 700,
   },
@@ -310,16 +324,17 @@ const styles = StyleSheet.create({
   },
   grandTotalLabel: {
     color: "#FFFFFF",
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 700,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   grandTotalValue: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 13.5,
     fontWeight: 700,
   },
+
   amberText: {
     color: "#92400E",
     fontWeight: 700,
@@ -497,16 +512,6 @@ export function InvoiceDocument({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Top-Right Corner Geometric Accent (Flush with top-right page edges) */}
-        <View style={styles.cornerAccent} fixed>
-          <Svg width="110" height="70" viewBox="0 0 110 70">
-            {/* Angled AceOne Magenta Stripe */}
-            <Polygon points="32,0 46,0 18,52 4,52" fill={BRAND_PRIMARY} />
-            {/* Corner AceOne Indigo Polygon flush to top and right edges */}
-            <Polygon points="58,0 110,0 110,70 20,70" fill={BRAND_SECONDARY} />
-          </Svg>
-        </View>
-
         {/* Top Header Section */}
         <View style={styles.topBar}>
           <View style={styles.logoBox}>
@@ -521,16 +526,18 @@ export function InvoiceDocument({
           </View>
 
           {/* Tagline text with vertical magenta line on left */}
-          <View style={{ borderLeftWidth: 2, borderLeftColor: BRAND_PRIMARY, paddingLeft: 8, maxWidth: 175, paddingTop: 1, marginRight: 50 }}>
+          <View style={{ borderLeftWidth: 2.5, borderLeftColor: BRAND_PRIMARY, paddingLeft: 10, maxWidth: 240, paddingTop: 1 }}>
             <Text style={{ fontSize: 7.5, color: "#374151", marginBottom: 2 }}>Your Partner in</Text>
             <Text style={{ fontSize: 11, fontWeight: 700, color: BRAND_PRIMARY, marginBottom: 3 }}>
               Digital Transformation
             </Text>
-            <Text style={{ fontSize: 6.8, color: "#6B7280", lineHeight: 1.35 }}>
-              We build modern solutions for a smarter, faster and more connected future.
+            <Text style={{ fontSize: 7, color: "#6B7280", lineHeight: 1.35 }} hyphenationCallback={(word) => [word]}>
+              We build modern solutions for a smarter, faster and{"\n"}more connected future.
             </Text>
           </View>
+
         </View>
+
 
         {/* 3-Column Meta Info Bar (Bill To, From / NTN, Invoice Card) */}
         <View style={styles.infoRow}>
