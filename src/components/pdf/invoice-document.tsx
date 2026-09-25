@@ -5,6 +5,7 @@ import type { invoices, invoiceItems, payments } from "@/lib/db/schema";
 import { formatMoney, money, sumMoney } from "@/lib/money";
 
 const poppinsRegular = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-Regular.ttf");
+const poppinsItalic = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-Italic.ttf");
 const poppinsMedium = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-Medium.ttf");
 const poppinsSemiBold = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-SemiBold.ttf");
 const poppinsBold = path.join(process.cwd(), "public", "fonts", "poppins", "Poppins-Bold.ttf");
@@ -13,6 +14,7 @@ Font.register({
   family: "Poppins",
   fonts: [
     { src: poppinsRegular, fontWeight: 400 },
+    { src: poppinsItalic, fontWeight: 400, fontStyle: "italic" },
     { src: poppinsMedium, fontWeight: 500 },
     { src: poppinsSemiBold, fontWeight: 600 },
     { src: poppinsBold, fontWeight: 700 },
@@ -794,7 +796,7 @@ export function InvoiceDocument({
                 })}
               </View>
             ) : (
-              <Text style={{ fontSize: 7.5, color: TEXT_MUTED, fontStyle: "italic", marginBottom: 4 }}>
+              <Text style={{ fontSize: 7.5, color: TEXT_MUTED, marginBottom: 4 }}>
                 No payments recorded yet.
               </Text>
             )}
@@ -862,13 +864,13 @@ export function InvoiceDocument({
                       );
                     })}
                     {isPreviousSettled ? (
-                      <Text style={{ fontSize: 6.5, color: "#166534", fontStyle: "italic", marginTop: 2 }}>
+                      <Text style={{ fontSize: 6.5, color: "#166534", marginTop: 2 }}>
                         All previous balances settled - no outstanding dues.
                       </Text>
                     ) : null}
                   </View>
                 ) : isPreviousSettled ? (
-                  <Text style={{ fontSize: 6.5, color: "#166534", fontStyle: "italic", marginTop: 1 }}>
+                  <Text style={{ fontSize: 6.5, color: "#166534", marginTop: 1 }}>
                     All previous balances settled - no outstanding dues.
                   </Text>
                 ) : null}
@@ -904,29 +906,25 @@ export function InvoiceDocument({
         {/* Dark Footer Band with Burgundy & Crimson Theme */}
         <View style={styles.footerBand} fixed>
           <View style={styles.footerColLeft}>
-            {/* Contact row — single line with flex-row so URL never wraps mid-word */}
-            <View style={{ flexDirection: "row", flexWrap: "nowrap", alignItems: "center", marginBottom: 3.5 }}>
+            {/* Contact row — nested Text eliminates flexbox measurement collisions */}
+            <Text style={styles.footerContacts}>
               {company.phone ? (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={[styles.footerLabel, { fontSize: 8.5 }]}>Phone: </Text>
-                  <Text style={[styles.footerValue, { fontSize: 8.5 }]}>{company.phone}</Text>
-                  <Text style={{ color: "#FFFFFF", opacity: 0.35, fontSize: 8.5, marginHorizontal: 9 }}>|</Text>
-                </View>
+                <>
+                  <Text style={styles.footerLabel}>Phone: </Text>
+                  <Text style={styles.footerValue}>{company.phone}</Text>
+                  <Text style={{ color: "#FFFFFF", opacity: 0.35 }}>{"   |   "}</Text>
+                </>
               ) : null}
               {company.email ? (
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text style={[styles.footerLabel, { fontSize: 8.5 }]}>Email: </Text>
-                  <Text style={[styles.footerValue, { fontSize: 8.5 }]}>{company.email}</Text>
-                  <Text style={{ color: "#FFFFFF", opacity: 0.35, fontSize: 8.5, marginHorizontal: 9 }}>|</Text>
-                </View>
+                <>
+                  <Text style={styles.footerLabel}>Email: </Text>
+                  <Text style={styles.footerValue}>{company.email}</Text>
+                  <Text style={{ color: "#FFFFFF", opacity: 0.35 }}>{"   |   "}</Text>
+                </>
               ) : null}
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Text style={[styles.footerLabel, { fontSize: 8.5 }]}>Web: </Text>
-                <Text style={[styles.footerValue, { fontSize: 8.5 }]} hyphenationCallback={(word) => [word]}>
-                  {company.website || "https://aceonesolutions.com"}
-                </Text>
-              </View>
-            </View>
+              <Text style={styles.footerLabel}>Web: </Text>
+              <Text style={styles.footerValue}>{company.website || "https://aceonesolutions.com"}</Text>
+            </Text>
             {company.address ? (
               <Text style={styles.footerAddress}>{company.address}</Text>
             ) : null}
