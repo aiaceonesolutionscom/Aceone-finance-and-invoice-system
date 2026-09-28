@@ -1,9 +1,9 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db, type Tx } from "@/lib/db";
-import { expenses } from "@/lib/db/schema";
+import { expenses, expenseCategories } from "@/lib/db/schema";
 import { expenseSchema, type ExpenseInput } from "@/lib/validation/expense";
 import { upsertExpenseCategoryByName } from "@/lib/db/queries/expense-categories";
 import { logAudit } from "@/lib/audit";
@@ -76,6 +76,53 @@ export async function deleteExpense(id: number) {
   await db.delete(expenses).where(eq(expenses.id, id));
   await logAudit(db, { action: "expense.deleted", entity: "expense", entityId: id });
   revalidatePath("/expenses");
+  revalidatePath("/dashboard");
+}
+
+export async function deleteExpenseCategory(id: number) {
+  await requireAuth();
+
+  const [category] = await db
+    .select({ name: expenseCategories.name })
+    .from(expenseCategories)
+    .where(eq(expenseCategories.id, id))
+    .limit(1);
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(expenses)
+    .where(eq(expenses.categoryId, id));
+
+  if (count > 0) {
+    throw new Error(
+      `Cannot delete category "${category?.name ?? "this category"}" because it is currently used by ${count} expense(s). Please delete or reassign those expenses first.`
+    );
+  }
+
+  try {
+    await db.delete(expenseCategories).where(eq(expenseCategories.id, id));
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (/foreign key/i.test(error.message) ||
+        /violates foreign key/i.test(String((error as any).cause?.message)))
+    ) {
+      throw new Error(
+        `Cannot delete category "${category?.name ?? "this category"}" because existing expenses are assigned to it.`
+      );
+    }
+    throw error;
+  }
+
+  await logAudit(db, {
+    action: "expense_category.deleted",
+    entity: "expense_category",
+    entityId: id,
+    details: { name: category?.name },
+  });
+
+  revalidatePath("/expenses");
+  revalidatePath("/reports/expenses");
   revalidatePath("/dashboard");
 }
 

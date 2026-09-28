@@ -77,6 +77,10 @@ function EditExpenseDialog({ expense, categories }: { expense: Expense; categori
               setCategoryId(null);
               setCustomCategory(name);
             }}
+            onClearSelection={() => {
+              setCategoryId(null);
+              setCustomCategory(null);
+            }}
           />
           <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" inputMode="decimal" />
         </div>

@@ -31,14 +31,18 @@ export function DeleteCustomerButton({ id, name }: { id: number; name: string })
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete {name}?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This cannot be undone. Customers with existing invoices cannot be deleted.
+          <AlertDialogTitle>Are you sure you want to delete {name}?</AlertDialogTitle>
+          <AlertDialogDescription className="space-y-2 text-left">
+            <span>This action cannot be undone.</span>
+            <span className="block rounded-md bg-amber-500/10 p-2 text-xs font-medium text-amber-600 dark:text-amber-400">
+              Important: If this customer has existing invoices, they cannot be deleted. You must delete or reassign their invoices first.
+            </span>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
+            variant="destructive"
             disabled={isPending}
             onClick={() =>
               startTransition(async () => {
@@ -52,7 +56,7 @@ export function DeleteCustomerButton({ id, name }: { id: number; name: string })
               })
             }
           >
-            Delete
+            {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

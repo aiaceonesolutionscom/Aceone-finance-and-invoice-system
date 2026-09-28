@@ -82,6 +82,10 @@ export function ExpenseForm({ categories }: { categories: CategoryOption[] }) {
                     form.setValue("categoryId", null);
                     form.setValue("customCategory", name, { shouldValidate: true });
                   }}
+                  onClearSelection={() => {
+                    form.setValue("categoryId", null);
+                    form.setValue("customCategory", null);
+                  }}
                 />
               </FormControl>
               <FormMessage />
