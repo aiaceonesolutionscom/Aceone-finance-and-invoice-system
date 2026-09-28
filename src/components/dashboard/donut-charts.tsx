@@ -5,7 +5,15 @@ import { money, formatMoney } from "@/lib/money";
 
 type Slice = { name: string; value: number; color: string };
 
-function Donut({ data, centerLabel }: { data: Slice[]; centerLabel: string }) {
+function Donut({
+  data,
+  centerLabel,
+  valueFormatter,
+}: {
+  data: Slice[];
+  centerLabel: string;
+  valueFormatter?: (value: number) => string;
+}) {
   const total = data.reduce((sum, s) => sum + s.value, 0);
 
   if (total <= 0) {
@@ -15,6 +23,9 @@ function Donut({ data, centerLabel }: { data: Slice[]; centerLabel: string }) {
       </div>
     );
   }
+
+  const defaultFormatter = (value: unknown) =>
+    formatMoney(money(Array.isArray(value) ? value[0] : (value ?? 0)));
 
   return (
     <div className="relative h-56">
@@ -26,7 +37,10 @@ function Donut({ data, centerLabel }: { data: Slice[]; centerLabel: string }) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(value) => formatMoney(money(Array.isArray(value) ? value[0] : (value ?? 0)))}
+            formatter={(value) => {
+              const num = Number(Array.isArray(value) ? value[0] : (value ?? 0));
+              return valueFormatter ? valueFormatter(num) : defaultFormatter(value);
+            }}
             contentStyle={{ fontSize: 12, borderRadius: 8 }}
           />
         </PieChart>
@@ -38,7 +52,13 @@ function Donut({ data, centerLabel }: { data: Slice[]; centerLabel: string }) {
   );
 }
 
-function Legend({ data }: { data: Slice[] }) {
+function Legend({
+  data,
+  valueFormatter,
+}: {
+  data: Slice[];
+  valueFormatter?: (value: number) => string;
+}) {
   const total = data.reduce((sum, s) => sum + s.value, 0);
   return (
     <div className="mt-3 space-y-1.5">
@@ -49,6 +69,7 @@ function Legend({ data }: { data: Slice[] }) {
             {slice.name}
           </span>
           <span className="text-muted-foreground">
+            {valueFormatter ? `${valueFormatter(slice.value)} · ` : ""}
             {total > 0 ? Math.round((slice.value / total) * 100) : 0}%
           </span>
         </div>
@@ -71,10 +92,15 @@ export function InvoiceStatusDonut({
     { name: "Partially Paid", value: partialCount, color: "#0ea5e9" },
     { name: "Paid", value: paidCount, color: "#10b981" },
   ];
+  const countFormatter = (val: number) => `${val} ${val === 1 ? "invoice" : "invoices"}`;
   return (
     <div>
-      <Donut data={data} centerLabel={`${unpaidCount + partialCount + paidCount} invoices`} />
-      <Legend data={data} />
+      <Donut
+        data={data}
+        centerLabel={`${unpaidCount + partialCount + paidCount} invoices`}
+        valueFormatter={countFormatter}
+      />
+      <Legend data={data} valueFormatter={countFormatter} />
     </div>
   );
 }
