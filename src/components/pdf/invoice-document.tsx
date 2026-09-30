@@ -402,20 +402,20 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_SECONDARY, // AceOne Deep Indigo from bottom of logo
     borderTopWidth: 2.5,
     borderTopColor: BRAND_PRIMARY, // AceOne Signature Magenta accent line
-    paddingVertical: 12,
-    paddingHorizontal: 36,
+    paddingVertical: 10,
+    paddingHorizontal: 32,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   footerColLeft: {
     flex: 1,
-    paddingRight: 20,
+    paddingRight: 12,
   },
   footerContacts: {
-    fontSize: 8.5,
+    fontSize: 8,
     color: "#FFFFFF",
-    marginBottom: 3.5,
+    marginBottom: 3,
     lineHeight: 1.35,
   },
   footerLabel: {
@@ -430,8 +430,8 @@ const styles = StyleSheet.create({
   },
   footerAddress: {
     color: "#FFFFFF", // Pure white for crystal clarity
-    fontSize: 7.8,
-    lineHeight: 1.4,
+    fontSize: 7.5,
+    lineHeight: 1.35,
     opacity: 0.95,
   },
 });
@@ -912,25 +912,29 @@ export function InvoiceDocument({
                 <>
                   <Text style={styles.footerLabel}>Phone: </Text>
                   <Text style={styles.footerValue}>{company.phone}</Text>
-                  <Text style={{ color: "#FFFFFF", opacity: 0.35 }}>{"   |   "}</Text>
+                  <Text style={{ color: "#FFFFFF", opacity: 0.35 }}>{"  |  "}</Text>
                 </>
               ) : null}
               {company.email ? (
                 <>
                   <Text style={styles.footerLabel}>Email: </Text>
                   <Text style={styles.footerValue}>{company.email}</Text>
-                  <Text style={{ color: "#FFFFFF", opacity: 0.35 }}>{"   |   "}</Text>
+                  <Text style={{ color: "#FFFFFF", opacity: 0.35 }}>{"  |  "}</Text>
                 </>
               ) : null}
               <Text style={styles.footerLabel}>Web: </Text>
-              <Text style={styles.footerValue}>{company.website || "https://aceonesolutions.com"}</Text>
+              <Text style={styles.footerValue}>
+                {(company.website || "aceonesolutions.com")
+                  .replace(/^https?:\/\//i, "")
+                  .replace(/\/+$/, "")}
+              </Text>
             </Text>
             {company.address ? (
               <Text style={styles.footerAddress}>{company.address}</Text>
             ) : null}
           </View>
           {whiteLogoAbsolutePath ? (
-            <Image src={whiteLogoAbsolutePath} style={{ width: 145, height: 38, objectFit: "contain" }} />
+            <Image src={whiteLogoAbsolutePath} style={{ width: 125, height: 32, objectFit: "contain" }} />
           ) : (
             <Text style={{ color: "#FFFFFF", fontSize: 9.5, fontWeight: 700, letterSpacing: 1 }}>
               {company.companyName ? company.companyName.toUpperCase() : "ACEONE CREATIVE AGENCY"}
