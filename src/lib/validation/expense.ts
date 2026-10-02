@@ -3,6 +3,7 @@ import { positiveMoneyStringSchema } from "./money";
 
 export const expenseSchema = z
   .object({
+    expenseDate: z.string().trim().optional(),
     expenseName: z
       .string()
       .trim()
