@@ -25,7 +25,10 @@ async function resolveCategoryId(tx: Tx, parsed: ExpenseInput) {
 export async function createExpense(input: ExpenseInput) {
   const user = await requireAuth();
   const parsed = expenseSchema.parse(input);
-  const { expenseDate, expenseTime } = nowDateTime();
+  const now = nowDateTime();
+  const expenseDate = parsed.expenseDate?.trim() || now.expenseDate;
+  const rawTime = parsed.expenseTime?.trim() || now.expenseTime;
+  const expenseTime = rawTime.length === 5 ? `${rawTime}:00` : rawTime;
 
   const created = await db.transaction(async (tx) => {
     const categoryId = await resolveCategoryId(tx, parsed);
@@ -56,9 +59,23 @@ export async function updateExpense(id: number, input: ExpenseInput) {
 
   const updated = await db.transaction(async (tx) => {
     const categoryId = await resolveCategoryId(tx, parsed);
+    const updateData: Record<string, any> = {
+      expenseName: parsed.expenseName,
+      amount: parsed.amount,
+      categoryId,
+      updatedAt: new Date(),
+    };
+    if (parsed.expenseDate?.trim()) {
+      updateData.expenseDate = parsed.expenseDate.trim();
+    }
+    if (parsed.expenseTime?.trim()) {
+      const t = parsed.expenseTime.trim();
+      updateData.expenseTime = t.length === 5 ? `${t}:00` : t;
+    }
+
     const [row] = await tx
       .update(expenses)
-      .set({ expenseName: parsed.expenseName, amount: parsed.amount, categoryId, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(expenses.id, id))
       .returning();
 
@@ -125,4 +142,3 @@ export async function deleteExpenseCategory(id: number) {
   revalidatePath("/reports/expenses");
   revalidatePath("/dashboard");
 }
-

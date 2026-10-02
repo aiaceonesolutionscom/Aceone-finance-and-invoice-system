@@ -45,9 +45,26 @@ type Expense = {
   categoryName: string | null;
 };
 
+export function formatTime12h(timeStr: string | null) {
+  if (!timeStr) return "—";
+  const parts = timeStr.split(":");
+  const h = parseInt(parts[0], 10);
+  if (isNaN(h)) return timeStr;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  const pad = (n: number | string) => String(n).padStart(2, "0");
+  const m = parts[1] ?? "00";
+  const s = parts[2];
+  return s !== undefined
+    ? `${pad(h12)}:${m}:${s} ${ampm}`
+    : `${pad(h12)}:${m} ${ampm}`;
+}
+
 function EditExpenseDialog({ expense, categories }: { expense: Expense; categories: CategoryOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [date, setDate] = useState(expense.expenseDate);
+  const [time, setTime] = useState(expense.expenseTime ? expense.expenseTime.slice(0, 5) : "");
   const [name, setName] = useState(expense.expenseName);
   const [amount, setAmount] = useState(money(expense.amount).toFixed(2));
   const [categoryId, setCategoryId] = useState(expense.categoryId);
@@ -64,25 +81,44 @@ function EditExpenseDialog({ expense, categories }: { expense: Expense; categori
           <DialogTitle>Edit Expense</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Expense details" />
-          <CategoryCombobox
-            categories={categories}
-            categoryId={categoryId}
-            customCategory={customCategory}
-            onSelectExisting={(category) => {
-              setCategoryId(category.id);
-              setCustomCategory(null);
-            }}
-            onSelectCustom={(name) => {
-              setCategoryId(null);
-              setCustomCategory(name);
-            }}
-            onClearSelection={() => {
-              setCategoryId(null);
-              setCustomCategory(null);
-            }}
-          />
-          <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" inputMode="decimal" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Date</label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Time</label>
+              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Expense Details</label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Expense details" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Category</label>
+            <CategoryCombobox
+              categories={categories}
+              categoryId={categoryId}
+              customCategory={customCategory}
+              onSelectExisting={(category) => {
+                setCategoryId(category.id);
+                setCustomCategory(null);
+              }}
+              onSelectCustom={(customName) => {
+                setCategoryId(null);
+                setCustomCategory(customName);
+              }}
+              onClearSelection={() => {
+                setCategoryId(null);
+                setCustomCategory(null);
+              }}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Amount</label>
+            <Input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" inputMode="decimal" />
+          </div>
         </div>
         <DialogFooter>
           <Button
@@ -90,7 +126,14 @@ function EditExpenseDialog({ expense, categories }: { expense: Expense; categori
             onClick={() =>
               startTransition(async () => {
                 try {
-                  await updateExpense(expense.id, { expenseName: name, amount, categoryId, customCategory });
+                  await updateExpense(expense.id, {
+                    expenseDate: date,
+                    expenseTime: time,
+                    expenseName: name,
+                    amount,
+                    categoryId,
+                    customCategory,
+                  });
                   toast.success("Expense updated");
                   setOpen(false);
                   router.refresh();
@@ -114,7 +157,9 @@ function DeleteExpenseButton({ expense }: { expense: Expense }) {
 
   return (
     <AlertDialog>
-      <AlertDialogTrigger render={<Button variant="ghost" size="icon" aria-label={`Delete ${expense.expenseName}`} />}>
+      <AlertDialogTrigger
+        render={<Button variant="ghost" size="icon" aria-label={`Delete ${expense.expenseName}`} />}
+      >
         <Trash2 className="size-4 text-destructive" />
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -171,13 +216,13 @@ export function ExpenseTable({ expenses, categories }: { expenses: Expense[]; ca
         <TableBody>
           {expenses.map((expense) => (
             <TableRow key={expense.id}>
-              <TableCell>{expense.expenseDate}</TableCell>
-              <TableCell>{expense.expenseTime ?? "—"}</TableCell>
+              <TableCell className="whitespace-nowrap">{expense.expenseDate}</TableCell>
+              <TableCell className="whitespace-nowrap">{formatTime12h(expense.expenseTime)}</TableCell>
               <TableCell>{expense.expenseName}</TableCell>
               <TableCell>
                 {expense.categoryName ? <Badge variant="outline">{expense.categoryName}</Badge> : "—"}
               </TableCell>
-              <TableCell className="text-right">{formatMoney(expense.amount)}</TableCell>
+              <TableCell className="text-right whitespace-nowrap">{formatMoney(expense.amount)}</TableCell>
               <TableCell className="flex justify-end gap-1">
                 <EditExpenseDialog expense={expense} categories={categories} />
                 <DeleteExpenseButton expense={expense} />

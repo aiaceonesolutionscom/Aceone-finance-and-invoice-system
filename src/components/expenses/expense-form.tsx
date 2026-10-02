@@ -19,7 +19,30 @@ import { CategoryCombobox, type CategoryOption } from "@/components/expenses/cat
 import { expenseSchema, type ExpenseInput } from "@/lib/validation/expense";
 import { createExpense } from "@/actions/expenses";
 
-const emptyValues: ExpenseInput = { expenseName: "", amount: "", categoryId: null, customCategory: null };
+function getNowDateTimeStrings() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+  return {
+    date: `${year}-${month}-${day}`,
+    time: `${hours}:${minutes}`,
+  };
+}
+
+const getEmptyValues = (): ExpenseInput => {
+  const now = getNowDateTimeStrings();
+  return {
+    expenseDate: now.date,
+    expenseTime: now.time,
+    expenseName: "",
+    amount: "",
+    categoryId: null,
+    customCategory: null,
+  };
+};
 
 export function ExpenseForm({ categories }: { categories: CategoryOption[] }) {
   const router = useRouter();
@@ -27,7 +50,7 @@ export function ExpenseForm({ categories }: { categories: CategoryOption[] }) {
 
   const form = useForm<ExpenseInput>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: emptyValues,
+    defaultValues: getEmptyValues(),
   });
 
   const categoryId = form.watch("categoryId");
@@ -38,7 +61,7 @@ export function ExpenseForm({ categories }: { categories: CategoryOption[] }) {
       try {
         await createExpense(values);
         toast.success("Expense added");
-        form.reset(emptyValues);
+        form.reset(getEmptyValues());
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Something went wrong");
@@ -48,7 +71,33 @@ export function ExpenseForm({ categories }: { categories: CategoryOption[] }) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex max-w-2xl flex-wrap items-start gap-3">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex max-w-5xl flex-wrap items-start gap-3">
+        <FormField
+          control={form.control}
+          name="expenseDate"
+          render={({ field }) => (
+            <FormItem className="w-38">
+              <FormLabel className="sr-only">Date</FormLabel>
+              <FormControl>
+                <Input type="date" aria-label="Expense Date" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="expenseTime"
+          render={({ field }) => (
+            <FormItem className="w-32">
+              <FormLabel className="sr-only">Time</FormLabel>
+              <FormControl>
+                <Input type="time" aria-label="Expense Time" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="expenseName"
@@ -96,7 +145,7 @@ export function ExpenseForm({ categories }: { categories: CategoryOption[] }) {
           control={form.control}
           name="amount"
           render={({ field }) => (
-            <FormItem className="w-40">
+            <FormItem className="w-36">
               <FormLabel className="sr-only">Amount</FormLabel>
               <FormControl>
                 <Input placeholder="Amount" inputMode="decimal" {...field} />
