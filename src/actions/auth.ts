@@ -62,16 +62,24 @@ export async function changePassword(input: ChangePasswordInput) {
   const user = await requireAuth();
   const parsed = changePasswordSchema.parse(input);
 
-  const valid = await verifyPassword(parsed.currentPassword, user.passwordHash);
+  const [dbUser] = await db
+    .select({ passwordHash: appUser.passwordHash })
+    .from(appUser)
+    .where(eq(appUser.id, user.id))
+    .limit(1);
+  if (!dbUser) {
+    throw new Error("User account not found.");
+  }
+
+  const valid = await verifyPassword(parsed.currentPassword, dbUser.passwordHash);
   if (!valid) {
     throw new Error("Current password is incorrect.");
   }
 
   const passwordHash = await hashPassword(parsed.newPassword);
-  await db.update(appUser).set({ passwordHash, updatedAt: new Date() }).where(eq(appUser.id, 1));
+  await db.update(appUser).set({ passwordHash, updatedAt: new Date() }).where(eq(appUser.id, user.id));
 
   // Invalidate any older sessions and assign a fresh session for the current browser
   await db.delete(sessions);
   await createSession();
 }
-
